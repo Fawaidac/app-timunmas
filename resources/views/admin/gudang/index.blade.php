@@ -33,9 +33,9 @@
                     <h3 style="margin:0 0 4px;font-size:17px;">{{ $warehouse->name }}</h3>
                     <p style="margin:0;color:var(--muted);font-size:13px;">{{ $warehouse->code }}</p>
                 </div>
-                <span style="background:{{ $warehouse->is_active ? '#d1fae5' : '#f1f5f9' }};color:{{ $warehouse->is_active ? '#065f46' : '#64748b' }};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">
+                {{-- <span style="background:{{ $warehouse->is_active ? '#d1fae5' : '#f1f5f9' }};color:{{ $warehouse->is_active ? '#065f46' : '#64748b' }};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">
                     {{ $warehouse->is_active ? 'Aktif' : 'Nonaktif' }}
-                </span>
+                </span> --}}
             </div>
             @if($warehouse->address)
                 <p style="margin:0 0 16px;color:var(--muted);font-size:13px;">📍 {{ $warehouse->address }}</p>

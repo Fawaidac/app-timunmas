@@ -14,10 +14,12 @@ class UpdateCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'    => 'required|string|max:150',
-            'address' => 'nullable|string',
-            'phone'   => 'nullable|string|max:20',
-            'email'   => 'nullable|email|max:100',
+            'name'      => 'required|string|max:150',
+            'address'   => 'nullable|string',
+            'phone'     => 'nullable|string|max:20',
+            'email'     => 'nullable|email|max:100',
+            'latitude'  => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ];
     }
 

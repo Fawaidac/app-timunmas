@@ -4,6 +4,22 @@
 @section('page_title', 'Detail Customer')
 @section('page_description', 'Informasi lengkap customer')
 
+@push('styles')
+@if($customer->latitude && $customer->longitude)
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #map-preview {
+        height: 250px;
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        margin-top: 12px;
+        z-index: 1;
+    }
+</style>
+@endif
+@endpush
+
 @section('content')
 <div class="section-head" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
     <div>
@@ -27,7 +43,7 @@
     </div>
 @endif
 
-<div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start;">
+<div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">
     <article class="card">
         <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="field">
@@ -51,6 +67,18 @@
                 <input type="text" class="form-control" value="{{ $customer->email ?? '-' }}" readonly style="background:#f9fafb;">
             </div>
         </div>
+
+        @if($customer->latitude && $customer->longitude)
+            <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <h4 style="margin:0;font-size:14px;font-weight:600;color:var(--ink);">📍 Peta Lokasi Customer</h4>
+                    <a href="https://www.google.com/maps?q={{ $customer->latitude }},{{ $customer->longitude }}" target="_blank" class="button button-soft" style="font-size:11px;padding:4px 10px;">
+                        ↗ Buka di Google Maps
+                    </a>
+                </div>
+                <div id="map-preview"></div>
+            </div>
+        @endif
     </article>
 
     <article class="card">
@@ -63,15 +91,19 @@
                 </div>
             </div>
         </div>
-        @if($customer->latitude && $customer->longitude)
+        
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
             <div style="width:40px;height:40px;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">📍</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Koordinat GPS</div>
-                <div style="font-size:12px;font-weight:600;">{{ $customer->latitude }}, {{ $customer->longitude }}</div>
+                @if($customer->latitude && $customer->longitude)
+                    <div style="font-size:12px;font-weight:600;">{{ $customer->latitude }}, {{ $customer->longitude }}</div>
+                @else
+                    <div style="font-size:12px;color:var(--muted);font-style:italic;">Belum diatur</div>
+                @endif
             </div>
         </div>
-        @endif
+
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
             <div style="width:40px;height:40px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">📅</div>
             <div>
@@ -82,3 +114,26 @@
     </article>
 </div>
 @endsection
+
+@push('scripts')
+@if($customer->latitude && $customer->longitude)
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var lat = {{ $customer->latitude }};
+        var lng = {{ $customer->longitude }};
+
+        var map = L.map('map-preview').setView([lat, lng], 15);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        L.marker([lat, lng]).addTo(map)
+            .bindPopup("<b>{{ $customer->name }}</b><br>{{ $customer->address }}")
+            .openPopup();
+    });
+</script>
+@endif
+@endpush

@@ -14,11 +14,13 @@ class StoreCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code'    => 'required|string|max:50|unique:customers,code',
-            'name'    => 'required|string|max:150',
-            'address' => 'nullable|string',
-            'phone'   => 'nullable|string|max:20',
-            'email'   => 'nullable|email|max:100',
+            'code'      => 'required|string|max:50|unique:customers,code',
+            'name'      => 'required|string|max:150',
+            'address'   => 'nullable|string',
+            'phone'     => 'nullable|string|max:20',
+            'email'     => 'nullable|email|max:100',
+            'latitude'  => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ];
     }
 
