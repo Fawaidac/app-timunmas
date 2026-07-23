@@ -11,12 +11,15 @@
 </div>
 
 <section class="stat-grid">
-    @foreach([
-        ['Total Piutang','Rp 84,6 jt','▤'],
-        ['Jatuh Tempo Hari Ini','Rp 12,4 jt','!'],
-        ['Lewat Jatuh Tempo','Rp 19,3 jt','⌛'],
-        ['Tertagih Bulan Ini','Rp 52,8 jt','✓'],
-    ] as $stat)
+    @php
+        $stats = [
+            ['Total Piutang', 'Rp ' . number_format($totalPiutang / 1000000, 1, ',', '.') . ' jt', '▤'],
+            ['Jatuh Tempo Hari Ini', 'Rp ' . number_format($jatuhTempoHariIni / 1000000, 1, ',', '.') . ' jt', '!'],
+            ['Lewat Jatuh Tempo', 'Rp ' . number_format($lewatJatuhTempo / 1000000, 1, ',', '.') . ' jt', '⌛'],
+            ['Tertagih Bulan Ini', 'Rp ' . number_format($tertagihBulanIni / 1000000, 1, ',', '.') . ' jt', '✓'],
+        ];
+    @endphp
+    @foreach($stats as $stat)
         <article class="card stat-card">
             <div><div class="stat-label">{{ $stat[0] }}</div><div class="stat-value">{{ $stat[1] }}</div></div>
             <div class="stat-icon">{{ $stat[2] }}</div>
@@ -27,11 +30,38 @@
 <article class="card top-gap">
     <div class="table-responsive">
         <table>
-            <thead><tr><th>No. Invoice</th><th>Pelanggan</th><th>Jatuh Tempo</th><th>Sisa Tagihan</th><th>Umur</th><th>Status</th></tr></thead>
+            <thead><tr><th>No. Invoice</th><th>Pelanggan</th><th>Jatuh Tempo</th><th>Sisa Tagihan</th><th>Umur</th><th>Status</th><th>Status Pembayaran</th></tr></thead>
             <tbody>
-            <tr><td>INV-2606-1088</td><td>UD Sinar Baru</td><td>21 Jul 2026</td><td>Rp 5.600.000</td><td>30 hari</td><td><span class="badge badge-warning">Jatuh tempo</span></td></tr>
-            <tr><td>INV-2606-0974</td><td>CV Maju Makmur</td><td>18 Jul 2026</td><td>Rp 8.250.000</td><td>33 hari</td><td><span class="badge badge-danger">Terlambat</span></td></tr>
-            <tr><td>INV-2607-0115</td><td>Toko Berkah Jaya</td><td>28 Jul 2026</td><td>Rp 3.450.000</td><td>23 hari</td><td><span class="badge badge-success">Belum jatuh tempo</span></td></tr>
+            @forelse($invoices as $invoice)
+            <tr>
+                <td>{{ $invoice->invoice_number }}</td>
+                <td>{{ $invoice->customer->name }}</td>
+                <td>{{ \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') }}</td>
+                <td>Rp {{ number_format($invoice->remaining_balance, 0, ',', '.') }}</td>
+                <td>{{ $invoice->umur_hari }} hari</td>
+                <td><span class="badge badge-{{ $invoice->badge_status }}">{{ $invoice->badge_label }}</span></td>
+                <td>
+                    @php
+                        $statusLabels = [
+                            'pending_approval' => 'Menunggu Persetujuan',
+                            'approved'         => 'Disetujui',
+                            'rejected'         => 'Ditolak',
+                        ];
+                        $paymentStatus = $invoice->latestPayment?->status;
+                    @endphp
+
+                    <a href="" class="button button-soft" style="padding:6px 12px;font-size:11px;">
+                        💰 {{ $paymentStatus ? ($statusLabels[$paymentStatus] ?? $paymentStatus) : 'Belum Ada Bayar' }}
+                    </a>
+                </td>
+            </tr>
+            @empty
+            <tr>
+                <td colspan="6" style="text-align:center;padding:40px 20px;color:#999;">
+                    📭 Belum ada tagihan
+                </td>
+            </tr>
+            @endforelse
             </tbody>
         </table>
     </div>

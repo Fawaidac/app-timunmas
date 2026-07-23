@@ -7,15 +7,21 @@ use App\Http\Requests\Sales\StoreOrderRequest;
 use App\Models\SalesOrder;
 use App\Models\SalesVisit;
 use App\Models\OrderItem;
+use App\Models\Invoice;
 use App\Models\Product;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-    public function index()
+    
+    public function index(Request $request)
     {
-        $orders = SalesOrder::with(['customer', 'items'])
+        $orders = SalesOrder::with(['customer', 'items', 'invoice.payments'])
             ->where('sales_id', auth()->id())
+            ->when($request->filled('customer_id'), function ($query) use ($request) {
+                $query->where('customer_id', $request->customer_id);
+            })
             ->orderBy('order_date', 'desc')
             ->get();
 
@@ -76,6 +82,21 @@ class OrderController extends Controller
                 }
             }
 
+            // Auto-create invoice
+            $invoiceNumber = $this->generateInvoiceNumber();
+            $dueDate = now()->addDays($order->payment_term_days);
+
+            Invoice::create([
+                'invoice_number' => $invoiceNumber,
+                'order_id' => $order->id,
+                'customer_id' => $order->customer_id,
+                'total_amount' => $total,
+                'remaining_balance' => $total,
+                'invoice_date' => $order->order_date,
+                'due_date' => $dueDate,
+                'status' => 'unpaid',
+            ]);
+
             return $order;
         });
 
@@ -90,7 +111,7 @@ class OrderController extends Controller
 
     public function show($id)
     {
-        $order = SalesOrder::with(['customer', 'sales', 'items.product', 'visit'])
+        $order = SalesOrder::with(['customer', 'sales', 'items.product', 'visit', 'invoice.payments'])
             ->where('sales_id', auth()->id())
             ->findOrFail($id);
 
@@ -107,6 +128,24 @@ class OrderController extends Controller
 
         if ($latest) {
             $lastNumber = (int) substr($latest->order_number, -4);
+            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $newNumber = '0001';
+        }
+
+        return $prefix . $date . $newNumber;
+    }
+
+    private function generateInvoiceNumber()
+    {
+        $prefix = 'INV';
+        $date = date('Ymd');
+        $latest = Invoice::where('invoice_number', 'like', $prefix . $date . '%')
+            ->orderBy('invoice_number', 'desc')
+            ->first();
+
+        if ($latest) {
+            $lastNumber = (int) substr($latest->invoice_number, -4);
             $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         } else {
             $newNumber = '0001';

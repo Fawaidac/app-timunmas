@@ -32,7 +32,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Mie Instan Goreng',
                 'unit' => 'karton',
                 'price' => 100000.00,
-                'description' => 'Mie instan goreng isi 40 pcs per karton',
+                'category' => 'Makanan',
                 'stock' => 50,
             ],
             [
@@ -40,7 +40,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Mie Instan Kuah',
                 'unit' => 'karton',
                 'price' => 95000.00,
-                'description' => 'Mie instan kuah isi 40 pcs per karton',
+                'category' => 'Makanan',
                 'stock' => 60,
             ],
             [
@@ -48,7 +48,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Kopi Sachet Premium',
                 'unit' => 'dus',
                 'price' => 75000.00,
-                'description' => 'Kopi sachet isi 30 pcs per dus',
+                'category' => 'Minuman',
                 'stock' => 40,
             ],
             [
@@ -56,7 +56,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Teh Celup Hitam',
                 'unit' => 'dus',
                 'price' => 50000.00,
-                'description' => 'Teh celup hitam isi 25 pcs per dus',
+                'category' => 'Minuman',
                 'stock' => 80,
             ],
             [
@@ -64,7 +64,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Gula Pasir',
                 'unit' => 'karung',
                 'price' => 250000.00,
-                'description' => 'Gula pasir premium isi 25kg per karung',
+                'category' => 'Sembako',
                 'stock' => 30,
             ],
             [
@@ -72,7 +72,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Minyak Goreng',
                 'unit' => 'jerigen',
                 'price' => 180000.00,
-                'description' => 'Minyak goreng curah isi 18 liter per jerigen',
+                'category' => 'Sembako',
                 'stock' => 25,
             ],
             [
@@ -80,7 +80,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Beras Premium',
                 'unit' => 'karung',
                 'price' => 350000.00,
-                'description' => 'Beras premium kualitas super isi 25kg',
+                'category' => 'Sembako',
                 'stock' => 40,
             ],
             [
@@ -88,7 +88,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Susu Kental Manis',
                 'unit' => 'karton',
                 'price' => 120000.00,
-                'description' => 'Susu kental manis kaleng isi 48 pcs per karton',
+                'category' => 'Sembako',
                 'stock' => 35,
             ],
             [
@@ -96,7 +96,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Biskuit Crackers',
                 'unit' => 'dus',
                 'price' => 85000.00,
-                'description' => 'Biskuit crackers isi 24 pcs per dus',
+                'category' => 'Sembako',
                 'stock' => 55,
             ],
             [
@@ -104,7 +104,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Sabun Mandi Batang',
                 'unit' => 'karton',
                 'price' => 60000.00,
-                'description' => 'Sabun mandi batang isi 72 pcs per karton',
+                'category' => 'Sembako',
                 'stock' => 70,
             ],
         ];

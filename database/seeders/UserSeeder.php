@@ -12,8 +12,8 @@ class UserSeeder extends Seeder
     {
         // Admin
         User::create([
-            'name' => 'Admin Timun Mas',
-            'email' => 'admin@timunmas.com',
+            'name' => 'Admin',
+            'email' => 'admin@gmail.com',
             'password' => Hash::make('password'),
             'role' => 'admin',
         ]);
@@ -21,14 +21,14 @@ class UserSeeder extends Seeder
         // Sales
         User::create([
             'name' => 'Sales 1',
-            'email' => 'sales1@timunmas.com',
+            'email' => 'sales1@gmail.com',
             'password' => Hash::make('password'),
             'role' => 'sales',
         ]);
 
         User::create([
             'name' => 'Sales 2',
-            'email' => 'sales2@timunmas.com',
+            'email' => 'sales2@gmail.com',
             'password' => Hash::make('password'),
             'role' => 'sales',
         ]);

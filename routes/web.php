@@ -42,11 +42,12 @@ Route::middleware(['auth', 'role:sales'])->prefix('sales')->name('sales.')->grou
     Route::post('/order', [OrderController::class, 'store'])->name('order.store');
     Route::get('/order/{id}', [OrderController::class, 'show'])->name('order.show');
     
-    // Tagihan / Invoices
+    // Tagihan
     Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
     
-    // Pembayaran / Payments
-    Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
+    // Pembayaran
+    Route::get('/pembayaran/{orderId}', [PembayaranController::class, 'index'])->name('pembayaran.index');
+    Route::post('/pembayaran', [PembayaranController::class, 'store'])->name('pembayaran.store');
     
     // Stok / Products
     Route::get('/stok', [StockController::class, 'index'])->name('stok.index');

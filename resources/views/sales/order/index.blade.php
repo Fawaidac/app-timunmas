@@ -48,7 +48,7 @@
                         <td>{{ $order->customer->name }}</td>
                         <td>{{ \Carbon\Carbon::parse($order->order_date)->format('d M Y') }}</td>
                         <td>{{ ucfirst($order->payment_type) }}{{ $order->payment_type === 'credit' ? ' (' . $order->payment_term_days . 'h)' : '' }}</td>
-                        <td style="text-align:right;">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
+                        <td>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
                         <td>
                             @if($order->status === 'pending')
                                 <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Pending</span>
@@ -61,7 +61,20 @@
                             @endif
                         </td>
                         <td>
-                            <a href="{{ route('sales.order.show', $order->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">Titip Pembayaran</a>
+                            <a href="{{ route('sales.order.show', $order->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">Detail</a>
+                            
+                            @php
+                                $pendingPayment = $order->invoice?->payments?->where('status', 'pending_approval')->first();
+                                $rejectedPayment = $order->invoice?->payments?->where('status', 'rejected')->first();
+                            @endphp
+                            
+                            @if($pendingPayment)
+                                <span style="display:inline-block;padding:6px 12px;font-size:11px;background:#fff3cd;color:#856404;border-radius:12px;">⏳ Menunggu konfirmasi</span>
+                            @elseif($rejectedPayment)
+                                <a href="{{ route('sales.pembayaran.index', $order->id) }}" class="button button-primary" style="padding:6px 12px;font-size:11px;background:#dc2626;">🔄 Bayar Lagi</a>
+                            @else
+                                <a href="{{ route('sales.pembayaran.index', $order->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">💰 Titip Pembayaran</a>
+                            @endif
                         </td>
                     </tr>
                 @empty
