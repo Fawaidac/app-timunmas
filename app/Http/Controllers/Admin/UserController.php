@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -69,7 +70,7 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         // Cegah admin hapus dirinya sendiri
-        if ($user->id === auth()->id()) {
+        if ($user->id === Auth::user()->id) {
             return redirect()->route('admin.users.index')
                 ->with('error', 'Tidak bisa menghapus akun sendiri.');
         }
