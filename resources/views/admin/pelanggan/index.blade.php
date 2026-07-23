@@ -22,7 +22,7 @@
 @endif
 
 <div class="toolbar">
-    <label class="search-box search-grow">
+    <label class="search-box">
         <span>⌕</span>
         <input type="search" placeholder="Cari customer...">
     </label>

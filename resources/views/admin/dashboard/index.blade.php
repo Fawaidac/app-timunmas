@@ -206,7 +206,7 @@
     <article class="card">
         <div class="card-title">
             <h3>Low Stock Alert</h3>
-            <a href="{{ route('admin.products') }}">View All →</a>
+            <a href="">View All →</a>
         </div>
         
         <div class="table-responsive">

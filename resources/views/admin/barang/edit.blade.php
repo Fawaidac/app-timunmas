@@ -10,7 +10,7 @@
     <p>Perbarui informasi produk: {{ $product->name }}</p>
 </div>
 
-<article class="card" style="max-width:640px;">
+<article class="card" style="width: 70%; max-width: 100%;">
     @if($errors->any())
         <div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px 16px;border-radius:10px;margin-bottom:20px;">
             <ul style="margin:0;padding-left:18px;">

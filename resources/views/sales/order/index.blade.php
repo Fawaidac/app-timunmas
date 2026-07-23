@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Order Sales - SFA Orange')
-@section('page_title', 'Order Sales')
-@section('page_description', 'Buat dan pantau pesanan pelanggan dari kunjungan lapangan')
+@section('title', 'Sales Order')
+@section('page_title', 'Daftar Sales Order')
+@section('page_description', 'Kelola order dari kunjungan sales')
 
 @section('content')
 <div class="section-head">
@@ -10,26 +10,69 @@
     <p>Buat dan pantau pesanan pelanggan dari kunjungan lapangan.</p>
 </div>
 
+@if(session('success'))
+    <div style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;padding:12px 16px;border-radius:10px;margin-bottom:16px;">
+        ✔ {{ session('success') }}
+    </div>
+@endif
+
 <div class="toolbar">
     <label class="search-box">
         <span>⌕</span>
         <input type="search" placeholder="Cari nomor order atau pelanggan...">
     </label>
-    <button class="button button-primary">＋ Buat Order Baru</button>
+    <div style="display:flex;gap:12px;">
+        <a href="{{ route('sales.kunjungan.index') }}" class="button button-soft">← Kembali ke Kunjungan</a>
+        <a href="{{ route('sales.order.create') }}" class="button button-primary">＋ Tambah Order Baru</a>
+    </div>
 </div>
 
 <article class="card">
     <div class="table-responsive">
         <table>
             <thead>
-            <tr><th>No. Order</th><th>Tanggal</th><th>Pelanggan</th><th>Item</th><th>Total</th><th>Status</th><th>Aksi</th></tr>
+                <tr>
+                    <th>Nomor Order</th>
+                    <th>Customer</th>
+                    <th>Tanggal</th>
+                    <th>Pembayaran</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
             </thead>
             <tbody>
-            <tr><td><b>SO-260721-018</b></td><td>21 Jul 2026</td><td>Toko Berkah Jaya</td><td>7</td><td>Rp 3.450.000</td><td><span class="badge badge-success">Disetujui</span></td><td><a href="{{ route('pembayaran') }}" class="button button-soft" style="padding: 7px 12px; font-size: 11px;">Titip Pembayaran</a></td></tr>
-            <tr><td><b>SO-260721-017</b></td><td>21 Jul 2026</td><td>UD Sinar Baru</td><td>12</td><td>Rp 5.800.000</td><td><span class="badge badge-warning">Menunggu</span></td><td><a href="{{ route('pembayaran') }}" class="button button-soft" style="padding: 7px 12px; font-size: 11px;">Titip Pembayaran</a></td></tr>
-            <tr><td><b>SO-260721-016</b></td><td>21 Jul 2026</td><td>CV Maju Makmur</td><td>4</td><td>Rp 2.125.000</td><td><span class="badge badge-orange">Diproses</span></td><td><a href="{{ route('pembayaran') }}" class="button button-soft" style="padding: 7px 12px; font-size: 11px;">Titip Pembayaran</a></td></tr>
-            <tr><td><b>SO-260720-089</b></td><td>20 Jul 2026</td><td>Grosir Sejahtera</td><td>15</td><td>Rp 7.050.000</td><td><span class="badge badge-danger">Revisi</span></td><td><a href="{{ route('pembayaran') }}" class="button button-soft" style="padding: 7px 12px; font-size: 11px;">Titip Pembayaran</a></td></tr>
-            </tbody>
+                @forelse($orders as $order)
+                    <tr>
+                        <td><b>{{ $order->order_number }}</b></td>
+                        <td>{{ $order->customer->name }}</td>
+                        <td>{{ \Carbon\Carbon::parse($order->order_date)->format('d M Y') }}</td>
+                        <td>{{ ucfirst($order->payment_type) }}{{ $order->payment_type === 'credit' ? ' (' . $order->payment_term_days . 'h)' : '' }}</td>
+                        <td style="text-align:right;">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
+                        <td>
+                            @if($order->status === 'pending')
+                                <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Pending</span>
+                            @elseif($order->status === 'approved')
+                                <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Approved</span>
+                            @elseif($order->status === 'processing')
+                                <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Processing</span>
+                            @else
+                                <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Rejected</span>
+                            @endif
+                        </td>
+                        <td>
+                            <a href="{{ route('sales.order.show', $order->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">Titip Pembayaran</a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" style="padding:60px 20px;text-align:center;color:var(--muted);">
+                            <div style="font-size:48px;margin-bottom:12px;">🛒</div>
+                            <p style="font-size:16px;font-weight:500;">Belum ada sales order</p>
+                            <p style="font-size:13px;">Order akan muncul setelah dibuat dari kunjungan</p>
+                        </td>
+                    </tr>
+                @endforelse
         </table>
     </div>
 </article>

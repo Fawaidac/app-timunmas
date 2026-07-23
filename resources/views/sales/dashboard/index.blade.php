@@ -39,7 +39,7 @@
     <article class="card">
         <div class="card-title">
             <h3>Order Terbaru</h3>
-            <a href="{{ route('order') }}">Lihat semua →</a>
+            <a href="{{ route('sales.kunjungan.index') }}">Lihat semua →</a>
         </div>
 
         <div class="table-responsive">
@@ -65,7 +65,7 @@
     <article class="card">
         <div class="card-title">
             <h3>Rute Kunjungan</h3>
-            <a href="{{ route('kunjungan') }}">Detail →</a>
+            <a href="{{ route('sales.kunjungan.index') }}">Detail →</a>
         </div>
 
         @foreach([

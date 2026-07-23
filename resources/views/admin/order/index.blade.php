@@ -11,7 +11,7 @@
 </div>
 
 <div class="toolbar">
-    <label class="search-box search-grow">
+    <label class="search-box">
         <span>⌕</span>
         <input type="search" placeholder="Cari nomor order atau pelanggan...">
     </label>
