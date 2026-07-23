@@ -3,44 +3,34 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Admin user
+        // Admin
         User::create([
             'name' => 'Admin Timun Mas',
             'email' => 'admin@timunmas.com',
             'password' => Hash::make('password'),
             'role' => 'admin',
-            'area' => null,
-            'phone' => '081234567890',
         ]);
 
-        // Sales user
+        // Sales
         User::create([
-            'name' => 'Andi Salesman',
-            'email' => 'sales@timunmas.com',
+            'name' => 'Sales 1',
+            'email' => 'sales1@timunmas.com',
             'password' => Hash::make('password'),
             'role' => 'sales',
-            'area' => 'Jakarta Selatan',
-            'phone' => '081234567891',
         ]);
 
-        // Additional sales users for testing
         User::create([
-            'name' => 'Budi Sales',
-            'email' => 'budi@timunmas.com',
+            'name' => 'Sales 2',
+            'email' => 'sales2@timunmas.com',
             'password' => Hash::make('password'),
             'role' => 'sales',
-            'area' => 'Jakarta Pusat',
-            'phone' => '081234567892',
         ]);
     }
 }

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('category', 100)->nullable();
             $table->decimal('price', 15, 2);
             $table->string('unit', 20);
+            $table->text('description')->nullable();
             $table->timestamps();
         });
     }

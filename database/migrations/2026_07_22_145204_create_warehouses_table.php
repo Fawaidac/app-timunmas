@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('warehouses', function (Blueprint $table) {
             $table->id();
             $table->string('code', 50)->unique();
-            $table->string('name', 100);
+            $table->string('name', 150);
             $table->text('address')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->integer('capacity')->nullable();
             $table->timestamps();
         });
     }

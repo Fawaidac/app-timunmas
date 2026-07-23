@@ -18,6 +18,7 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->string('phone', 20)->nullable();
             $table->string('email', 100)->nullable();
+            $table->enum('status', ['active', 'inactive', 'blocked'])->default('active');
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
             $table->decimal('current_debt', 15, 2)->default(0.00);
