@@ -24,14 +24,14 @@
 <div class="toolbar">
     <label class="search-box">
         <span>⌕</span>
-        <input type="search" placeholder="Cari customer...">
+        <input type="search" id="searchCustomer" placeholder="Cari customer...">
     </label>
     <a href="{{ route('admin.customers.create') }}" class="button button-primary">＋ Tambah Customer</a>
 </div>
 
 <article class="card">
     <div class="table-responsive">
-        <table>
+        <table id="customerTable">
             <thead>
                 <tr>
                     <th>Kode</th>
@@ -77,4 +77,23 @@
         </table>
     </div>
 </article>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('searchCustomer');
+    const rows = document.querySelectorAll('#customerTable tbody tr');
+
+    searchInput.addEventListener('keyup', function () {
+        const query = this.value.toLowerCase().trim();
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(query) ? '' : 'none';
+        });
+    });
+});
+</script>
+@endpush
+
 @endsection

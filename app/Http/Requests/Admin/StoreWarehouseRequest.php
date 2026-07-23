@@ -17,7 +17,6 @@ class StoreWarehouseRequest extends FormRequest
             'code'      => 'required|string|max:50|unique:warehouses,code',
             'name'      => 'required|string|max:100',
             'address'   => 'nullable|string',
-            'is_active' => 'boolean',
         ];
     }
 

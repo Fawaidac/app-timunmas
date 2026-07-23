@@ -6,6 +6,10 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\TagihanController as AdminTagihanController;
+use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Sales\DashboardController;
 use App\Http\Controllers\Sales\VisitController;
 use App\Http\Controllers\Sales\OrderController;
@@ -13,9 +17,10 @@ use App\Http\Controllers\Sales\TagihanController;
 use App\Http\Controllers\Sales\PembayaranController;
 use App\Http\Controllers\Sales\LaporanController;
 use App\Http\Controllers\Sales\StockController;
+use Illuminate\Support\Facades\App;
 
 // Auth routes
-Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -59,11 +64,20 @@ Route::middleware(['auth', 'role:sales'])->prefix('sales')->name('sales.')->grou
 
 // Admin routes (protected)
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::view('/', 'admin.dashboard.index')->name('dashboard');
-    Route::view('/orders', 'admin.order.index')->name('orders');
-    Route::view('/visits', 'admin.kunjungan.index')->name('visits');
-    Route::view('/invoices', 'admin.tagihan.index')->name('invoices');
-    Route::view('/payments', 'admin.pembayaran.index')->name('payments');
+    Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders');
+    Route::get('/order/{id}', [AdminOrderController::class, 'show'])->name('order.show');
+    // Route::view('/orders', 'admin.order.index')->name('orders');
+    Route::get('/visits', [\App\Http\Controllers\Admin\VisitController::class, 'index'])->name('visits');
+    Route::get('/visits/{id}', [\App\Http\Controllers\Admin\VisitController::class, 'show'])->name('visits.show');
+    // Tagihan / Invoices
+    Route::get('/invoices', [AdminTagihanController::class, 'index'])->name('invoices');
+    
+    // Pembayaran / Payments
+    Route::get('/payments', [AdminPembayaranController::class, 'index'])->name('payments');
+    Route::get('/payments/{id}', [AdminPembayaranController::class, 'show'])->name('pembayaran.show');
+    Route::post('/payments/{id}/approve', [AdminPembayaranController::class, 'approve'])->name('pembayaran.approve');
+    Route::post('/payments/{id}/reject', [AdminPembayaranController::class, 'reject'])->name('pembayaran.reject');
     Route::view('/reports', 'admin.laporan.index')->name('reports');
 
     // CRUD: Barang / Products

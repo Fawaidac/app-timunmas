@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Detail Sales Order')
 @section('page_title', 'Detail Sales Order')
@@ -7,13 +7,10 @@
 @section('content')
 <div class="section-head" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
     <div>
-        <h2>{{ $order->order_number }}</h2>
-        <p>Customer: {{ $order->customer->name }}</p>
+        <h2>{{ $orders->order_number }}</h2>
+        <p>Customer: {{ $orders->customer->name }}</p>
     </div>
     <div style="display:flex;gap:8px;">
-        @if($order->visit)
-            <a href="{{ route('sales.kunjungan.show', $order->visit_id) }}" class="button button-soft">📍 Lihat Kunjungan</a>
-        @endif
         <a href="javascript:history.back()" class="button button-soft">← Kembali</a>
     </div>
 </div>
@@ -31,27 +28,27 @@
         <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Nomor Order</label>
-                <input type="text" class="form-control" value="{{ $order->order_number }}" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ $orders->order_number }}" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Tanggal Order</label>
-                <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($order->order_date)->format('d M Y') }}" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($orders->order_date)->format('d M Y') }}" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Customer</label>
-                <input type="text" class="form-control" value="{{ $order->customer->name }}" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ $orders->customer->name }}" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Sales</label>
-                <input type="text" class="form-control" value="{{ $order->sales->name }}" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ $orders->sales->name }}" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Jenis Pembayaran</label>
-                <input type="text" class="form-control" value="{{ $order->payment_type === 'cash' ? 'Cash' : 'Kredit' }}" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ $orders->payment_type === 'cash' ? 'Cash' : 'Kredit' }}" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Tempo Pembayaran</label>
-                <input type="text" class="form-control" value="{{ $order->payment_term_days }} hari" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ $orders->payment_term_days }} hari" readonly style="background:#f9fafb;">
             </div>
         </div>
 
@@ -67,7 +64,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($order->items as $item)
+                    @foreach($orders->items as $item)
                         <tr style="border-bottom:1px solid #f1f5f9;">
                             <td style="padding:10px;">
                                 <div style="font-weight:600;">{{ $item->product->name }}</div>
@@ -83,7 +80,7 @@
                     <tr>
                         <td colspan="3" style="padding:12px;text-align:right;font-size:15px;font-weight:700;color:var(--ink);">Total Order:</td>
                         <td style="padding:12px;text-align:right;font-size:18px;font-weight:700;color:var(--orange-600);">
-                            Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                            Rp {{ number_format($orders->total_amount, 0, ',', '.') }}
                         </td>
                     </tr>
                 </tfoot>
@@ -96,11 +93,11 @@
             <div style="width:64px;height:64px;background:linear-gradient(135deg,#fff7ed,#fed7aa);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;">
                 🛒
             </div>
-            @if($order->status === 'pending')
+            @if($orders->status === 'pending')
                 <span style="background:#fef3c7;color:#92400e;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Pending</span>
-            @elseif($order->status === 'approved')
+            @elseif($orders->status === 'approved')
                 <span style="background:#d1fae5;color:#065f46;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Approved</span>
-            @elseif($order->status === 'processing')
+            @elseif($orders->status === 'processing')
                 <span style="background:#dbeafe;color:#1e40af;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Processing</span>
             @else
                 <span style="background:#fee2e2;color:#991b1b;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Rejected</span>
@@ -111,7 +108,7 @@
             <div style="width:40px;height:40px;background:#fff7ed;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">💰</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Total Order</div>
-                <div style="font-size:18px;font-weight:700;color:var(--orange-600);">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</div>
+                <div style="font-size:18px;font-weight:700;color:var(--orange-600);">Rp {{ number_format($orders->total_amount, 0, ',', '.') }}</div>
             </div>
         </div>
 
@@ -119,7 +116,7 @@
             <div style="width:40px;height:40px;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Total Item</div>
-                <div style="font-size:15px;font-weight:600;">{{ $order->items->count() }} produk</div>
+                <div style="font-size:15px;font-weight:600;">{{ $orders->items->count() }} produk</div>
             </div>
         </div>
 
@@ -127,7 +124,7 @@
             <div style="width:40px;height:40px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">📅</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Dibuat</div>
-                <div style="font-size:13px;font-weight:600;">{{ $order->created_at->format('d M Y H:i') }}</div>
+                <div style="font-size:13px;font-weight:600;">{{ $orders->created_at->format('d M Y H:i') }}</div>
             </div>
         </div>
     </article>

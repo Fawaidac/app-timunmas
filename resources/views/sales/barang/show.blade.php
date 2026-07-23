@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('title', 'Detail Stok Barang')
 @section('page_title', 'Detail Stok Barang')
@@ -11,7 +11,7 @@
         <p>SKU: {{ $product->sku }}</p>
     </div>
     <div style="display:flex;gap:8px;">
-        <a href="{{ route('sales.stok.index') }}" class="button button-soft">← Kembali</a>
+        <a href="javascript:history.back()" class="button button-soft">← Kembali</a>
     </div>
 </div>
 

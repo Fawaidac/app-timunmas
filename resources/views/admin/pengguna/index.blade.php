@@ -22,18 +22,18 @@
 @endif
 
 <div class="toolbar">
-    <label class="search-box search-grow">
+    <label class="search-box">
         <span>⌕</span>
-        <input type="search" placeholder="Cari pengguna...">
+        <input type="search" id="searchInput" placeholder="Cari pengguna...">
     </label>
     <a href="{{ route('admin.users.create') }}" class="button button-primary">＋ Tambah User</a>
 </div>
 
 <article class="card">
     <div class="table-responsive">
-        <table>
+        <table id="userTable">
             <thead>
-                <tr>
+                <tr class="user-row">
                     <th>Nama</th>
                     <th>Email</th>
                     <th>Role</th>
@@ -89,4 +89,23 @@
         </table>
     </div>
 </article>
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('searchInput');
+    const rows = document.querySelectorAll('#userTable tbody tr');
+
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function (e) {
+            const query = e.target.value.toLowerCase().trim();
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    }
+});
+</script>
+@endpush
 @endsection

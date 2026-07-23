@@ -1,8 +1,13 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Detail Kunjungan')
 @section('page_title', 'Detail Kunjungan')
 @section('page_description', 'Informasi lengkap kunjungan sales')
+
+{{-- Import Leaflet CSS --}}
+@push('styles')
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+@endpush
 
 @section('content')
 <div class="section-head" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
@@ -11,32 +16,15 @@
         <p>Kunjungan: {{ \Carbon\Carbon::parse($visit->visit_date)->format('d M Y') }}</p>
     </div>
     <div style="display:flex;gap:8px;">
-        <a href="{{ route('sales.kunjungan.edit', $visit->id) }}" class="button button-soft">✏️ Edit</a>
-        <form action="{{ route('sales.kunjungan.destroy', $visit->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Yakin ingin menghapus kunjungan ini?');">
-            @csrf
-            @method('DELETE')
-            <button type="submit" class="button button-soft" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;">🗑️ Hapus</button>
-        </form>
         <a href="javascript:history.back()" class="button button-soft">← Kembali</a>
     </div>
 </div>
 
-@if(session('success'))
-    <div style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;padding:12px 16px;border-radius:10px;margin-bottom:16px;">
-        ✔ {{ session('success') }}
-    </div>
-@endif
-
-@if(session('error'))
-    <div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px 16px;border-radius:10px;margin-bottom:16px;">
-        ✖ {{ session('error') }}
-    </div>
-@endif
-
-<div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start;">
+    
+    <!-- CARD 1 -->
     <article class="card">
         <h4 style="margin:0 0 16px;font-size:15px;font-weight:600;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">Informasi Kunjungan</h4>
-        
         <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Customer</label>
@@ -97,9 +85,6 @@
                         </span>
                     </div>
                 </div>
-                <a href="{{ route('sales.order.show', $visit->order->id) }}" class="button button-soft full-width" style="margin-top:12px;font-size:12px;">
-                    Lihat Detail Order
-                </a>
             </div>
         @endif
 
@@ -111,37 +96,111 @@
         @endif
     </article>
 
+    <!-- CARD 2 (MAPS) -->
     <article class="card">
-        <div style="text-align:center;padding:20px 0;border-bottom:1px solid #f1f5f9;margin-bottom:20px;">
-            <div style="width:64px;height:64px;background:linear-gradient(135deg,#fff7ed,#fed7aa);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;">
-                📍
-            </div>
+        <h4 style="margin:0 0 16px;font-size:15px;font-weight:600;padding-bottom:12px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+            <span>📍 Peta Lokasi Kunjungan</span>
             @if($visit->status === 'scheduled')
-                <span style="background:#fef3c7;color:#92400e;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Dijadwalkan</span>
+                <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Dijadwalkan</span>
             @elseif($visit->status === 'in_progress')
-                <span style="background:#dbeafe;color:#1e40af;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Berlangsung</span>
+                <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Berlangsung</span>
             @elseif($visit->status === 'completed')
-                <span style="background:#d1fae5;color:#065f46;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Selesai</span>
+                <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Selesai</span>
             @else
-                <span style="background:#fee2e2;color:#991b1b;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Batal</span>
+                <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Batal</span>
             @endif
-        </div>
+        </h4>
 
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-            <div style="width:40px;height:40px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>
-            <div>
-                <div style="font-size:11px;color:var(--muted);">Sales</div>
-                <div style="font-size:13px;font-weight:600;">{{ $visit->sales->name }}</div>
-            </div>
-        </div>
+        <!-- Element Peta OpenStreetMap -->
+        <div id="visitMap" style="width: 100%; height: 320px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 16px; z-index: 1;"></div>
 
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-            <div style="width:40px;height:40px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">📅</div>
-            <div>
-                <div style="font-size:11px;color:var(--muted);">Dibuat</div>
-                <div style="font-size:13px;font-weight:600;">{{ $visit->created_at->format('d M Y H:i') }}</div>
+        <!-- Legend / Keterangan Warna Pin -->
+        <div style="display:flex; gap:16px; font-size:12px; color:var(--muted); background:#f8fafc; padding:10px 12px; border-radius:8px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="width:12px; height:12px; background:#2563eb; border-radius:50%; display:inline-block;"></span>
+                <b>Customer:</b> {{ $visit->customer->name }}
             </div>
+            @if($visit->checkin_latitude)
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="width:12px; height:12px; background:#dc2626; border-radius:50%; display:inline-block;"></span>
+                    <b>Posisi Check-in</b>
+                </div>
+            @endif
         </div>
     </article>
 </div>
 @endsection
+
+{{-- Script OpenStreetMap via Leaflet JS --}}
+@push('scripts')
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // LatLong Customer
+            const custLat = {{ $visit->customer->latitude ?? -6.200000 }};
+            const custLng = {{ $visit->customer->longitude ?? 106.816666 }};
+
+            // LatLong Check-in User
+            const checkinLat = {{ $visit->checkin_latitude ?? 'null' }};
+            const checkinLng = {{ $visit->checkin_longitude ?? 'null' }};
+
+            // Inisialisasi Peta
+            const map = L.map('visitMap').setView([custLat, custLng], 15);
+
+            // Tile Layer dari OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Custom Icon Warna Biru untuk Customer
+            const blueIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+
+            // Custom Icon Warna Merah untuk Check-in Sales
+            const redIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+
+            const markers = [];
+
+            // Marker 1: Customer (Biru)
+            if (custLat && custLng) {
+                const custMarker = L.marker([custLat, custLng], { icon: blueIcon })
+                    .addTo(map)
+                    .bindPopup('<b>Toko/Customer:</b><br>{{ $visit->customer->name }}');
+                markers.push(custMarker);
+            }
+
+            // Marker 2: Check-in Sales (Merah) - Jika sudah check-in
+            if (checkinLat && checkinLng) {
+                const checkinMarker = L.marker([checkinLat, checkinLng], { icon: redIcon })
+                    .addTo(map)
+                    .bindPopup('<b>Posisi Check-in Sales:</b><br>{{ $visit->sales->name }}');
+                markers.push(checkinMarker);
+            }
+
+            // Garis penghubung antara lokasi Customer dan Check-in
+            if (custLat && custLng && checkinLat && checkinLng) {
+                const polyline = L.polyline([
+                    [custLat, custLng],
+                    [checkinLat, checkinLng]
+                ], { color: '#f97316', weight: 3, dashArray: '6, 8' }).addTo(map);
+
+                // Buat zoom peta otomatis mencakup kedua marker
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.2));
+            }
+        });
+    </script>
+@endpush

@@ -19,7 +19,7 @@ class ProductController extends Controller
 
     public function create()
     {
-        $warehouses = Warehouse::where('is_active', true)->orderBy('name')->get();
+        $warehouses = Warehouse::orderBy('name')->get();
         return view('admin.barang.create', compact('warehouses'));
     }
 
@@ -50,7 +50,7 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $product->load('warehouses');
-        $warehouses = Warehouse::where('is_active', true)->orderBy('name')->get();
+        $warehouses = Warehouse::orderBy('name')->get();
         $selectedStock = $product->warehouses->first();
 
         return view('admin.barang.edit', compact('product', 'warehouses', 'selectedStock'));

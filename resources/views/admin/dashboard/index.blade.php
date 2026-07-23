@@ -14,25 +14,41 @@
 </section>
 
 <section class="stat-grid" style="margin-top: 0; margin-bottom: 22px;">
-    @php
-        $stats = [
-            ['label' => 'Total Orders', 'value' => '1,247', 'hint' => '↗ +12% dari bulan lalu', 'icon' => '🛒'],
-            ['label' => 'Total Revenue', 'value' => 'Rp 2.4M', 'hint' => '↗ +8% dari bulan lalu', 'icon' => '💰'],
-            ['label' => 'Sales Aktif', 'value' => '24 / 28', 'hint' => 'Sales beroperasi hari ini', 'icon' => '👥'],
-            ['label' => 'Pending Approval', 'value' => '18 Order', 'hint' => 'Membutuhkan persetujuan', 'icon' => '⏳', 'danger' => true],
-        ];
-    @endphp
+    <article class="card stat-card">
+        <div>
+            <div class="stat-label">Total Orders</div>
+            <div class="stat-value">{{ number_format($totalOrders, 0, ',', '.') }}</div>
+            <div class="stat-hint">{{ $ordersGrowth >= 0 ? '↗' : '↘' }} {{ abs($ordersGrowth) }}% dari bulan lalu</div>
+        </div>
+        <div class="stat-icon">🛒</div>
+    </article>
 
-    @foreach($stats as $stat)
-        <article class="card stat-card">
-            <div>
-                <div class="stat-label">{{ $stat['label'] }}</div>
-                <div class="stat-value">{{ $stat['value'] }}</div>
-                <div class="stat-hint {{ !empty($stat['danger']) ? 'danger-text' : '' }}">{{ $stat['hint'] }}</div>
-            </div>
-            <div class="stat-icon">{{ $stat['icon'] }}</div>
-        </article>
-    @endforeach
+    <article class="card stat-card">
+        <div>
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value">Rp {{ number_format($totalRevenue / 1000000, 1, ',', '.') }}M</div>
+            <div class="stat-hint">{{ $revenueGrowth >= 0 ? '↗' : '↘' }} {{ abs($revenueGrowth) }}% dari bulan lalu</div>
+        </div>
+        <div class="stat-icon">💰</div>
+    </article>
+
+    <article class="card stat-card">
+        <div>
+            <div class="stat-label">Sales Aktif</div>
+            <div class="stat-value">{{ $activeSalesToday }} / {{ $totalSales }}</div>
+            <div class="stat-hint">Sales beroperasi hari ini</div>
+        </div>
+        <div class="stat-icon">👥</div>
+    </article>
+
+    <article class="card stat-card">
+        <div>
+            <div class="stat-label">Pending Approval</div>
+            <div class="stat-value">{{ $pendingOrders }} Order</div>
+            <div class="stat-hint danger-text">Membutuhkan persetujuan</div>
+        </div>
+        <div class="stat-icon">⏳</div>
+    </article>
 </section>
 
 <section class="two-column" style="margin-top: 0; margin-bottom: 22px;">
@@ -54,48 +70,31 @@
                 </tr>
                 </thead>
                 <tbody>
+                @forelse($recentOrders as $order)
                 <tr>
-                    <td><b>SO-260722-089</b></td>
-                    <td>Andi S.</td>
-                    <td>Toko Berkah Jaya</td>
-                    <td>Rp 3.450.000</td>
-                    <td><span class="badge badge-warning">Pending</span></td>
+                    <td><b>{{ $order->order_number }}</b></td>
+                    <td>{{ $order->sales->name ?? '-' }}</td>
+                    <td>{{ $order->customer->name }}</td>
+                    <td>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
+                    <td>
+                        @if($order->status === 'pending')
+                            <span class="badge badge-warning">Pending</span>
+                        @elseif($order->status === 'approved')
+                            <span class="badge badge-success">Approved</span>
+                        @elseif($order->status === 'processing')
+                            <span class="badge badge-orange">Processing</span>
+                        @elseif($order->status === 'completed')
+                            <span class="badge badge-success">Completed</span>
+                        @else
+                            <span class="badge badge-secondary">{{ ucfirst($order->status) }}</span>
+                        @endif
+                    </td>
                 </tr>
+                @empty
                 <tr>
-                    <td><b>SO-260722-088</b></td>
-                    <td>Budi S.</td>
-                    <td>UD Sinar Baru</td>
-                    <td>Rp 5.800.000</td>
-                    <td><span class="badge badge-success">Approved</span></td>
+                    <td colspan="5" style="text-align:center;padding:40px;color:var(--muted);">Belum ada order</td>
                 </tr>
-                <tr>
-                    <td><b>SO-260722-087</b></td>
-                    <td>Citra S.</td>
-                    <td>CV Maju Makmur</td>
-                    <td>Rp 2.125.000</td>
-                    <td><span class="badge badge-orange">Processing</span></td>
-                </tr>
-                <tr>
-                    <td><b>SO-260722-086</b></td>
-                    <td>Deni R.</td>
-                    <td>Grosir Sejahtera</td>
-                    <td>Rp 7.400.000</td>
-                    <td><span class="badge badge-success">Approved</span></td>
-                </tr>
-                <tr>
-                    <td><b>SO-260722-085</b></td>
-                    <td>Eka P.</td>
-                    <td>Toko Rezeki Abadi</td>
-                    <td>Rp 1.850.000</td>
-                    <td><span class="badge badge-warning">Pending</span></td>
-                </tr>
-                <tr>
-                    <td><b>SO-260722-084</b></td>
-                    <td>Fahmi H.</td>
-                    <td>Minimarket Sumber Makmur</td>
-                    <td>Rp 4.200.000</td>
-                    <td><span class="badge badge-success">Approved</span></td>
-                </tr>
+                @endforelse
                 </tbody>
             </table>
         </div>
@@ -107,70 +106,24 @@
         </div>
         
         <div style="display: flex; flex-direction: column; gap: 10px;">
+            @forelse($topSales as $sales)
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--line);">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="avatar" style="width: 32px; height: 32px; font-size: 11px; background: var(--orange-100);">AS</div>
+                    <div class="avatar" style="width: 32px; height: 32px; font-size: 11px; background: var(--orange-100);">
+                        {{ strtoupper(substr($sales->name, 0, 1)) }}{{ strtoupper(substr(explode(' ', $sales->name)[1] ?? $sales->name, 0, 1)) }}
+                    </div>
                     <div>
-                        <b style="font-size: 13px; display: block;">Andi Salesman</b>
-                        <p style="margin: 2px 0 0; font-size: 11px; color: var(--muted);">Jakarta Selatan</p>
+                        <b style="font-size: 13px; display: block;">{{ $sales->name }}</b>
+                        <p style="margin: 2px 0 0; font-size: 11px; color: var(--muted);">{{ $sales->email ?? '-' }}</p>
                     </div>
                 </div>
                 <div style="text-align: right;">
-                    <b style="font-size: 13px; color: var(--orange-600);">Rp 420M</b>
+                    <b style="font-size: 13px; color: var(--orange-600);">Rp {{ number_format(($sales->total_revenue ?? 0) / 1000000, 1, ',', '.') }}M</b>
                 </div>
             </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--line);">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="avatar" style="width: 32px; height: 32px; font-size: 11px; background: var(--orange-100);">BS</div>
-                    <div>
-                        <b style="font-size: 13px; display: block;">Budi Sales</b>
-                        <p style="margin: 2px 0 0; font-size: 11px; color: var(--muted);">Jakarta Pusat</p>
-                    </div>
-                </div>
-                <div style="text-align: right;">
-                    <b style="font-size: 13px; color: var(--orange-600);">Rp 380M</b>
-                </div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--line);">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="avatar" style="width: 32px; height: 32px; font-size: 11px; background: var(--orange-100);">CS</div>
-                    <div>
-                        <b style="font-size: 13px; display: block;">Citra Seller</b>
-                        <p style="margin: 2px 0 0; font-size: 11px; color: var(--muted);">Jakarta Utara</p>
-                    </div>
-                </div>
-                <div style="text-align: right;">
-                    <b style="font-size: 13px; color: var(--orange-600);">Rp 345M</b>
-                </div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--line);">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="avatar" style="width: 32px; height: 32px; font-size: 11px; background: var(--orange-100);">DR</div>
-                    <div>
-                        <b style="font-size: 13px; display: block;">Deni Rahmansyah</b>
-                        <p style="margin: 2px 0 0; font-size: 11px; color: var(--muted);">Bekasi & Depok</p>
-                    </div>
-                </div>
-                <div style="text-align: right;">
-                    <b style="font-size: 13px; color: var(--orange-600);">Rp 310M</b>
-                </div>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--line);">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="avatar" style="width: 32px; height: 32px; font-size: 11px; background: var(--orange-100);">EP</div>
-                    <div>
-                        <b style="font-size: 13px; display: block;">Eka Pratama</b>
-                        <p style="margin: 2px 0 0; font-size: 11px; color: var(--muted);">Tangerang Kota</p>
-                    </div>
-                </div>
-                <div style="text-align: right;">
-                    <b style="font-size: 13px; color: var(--orange-600);">Rp 295M</b>
-                </div>
-            </div>
+            @empty
+            <div style="text-align:center;padding:40px;color:var(--muted);">Belum ada data penjualan bulan ini</div>
+            @endforelse
         </div>
     </article>
 </section>
@@ -192,12 +145,23 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr><td>Toko Berkah Jaya</td><td>Rp 1.250.000</td><td><span class="badge badge-warning">Pending</span></td></tr>
-                <tr><td>UD Sinar Baru</td><td>Rp 850.000</td><td><span class="badge badge-warning">Pending</span></td></tr>
-                <tr><td>Grosir Sejahtera</td><td>Rp 2.400.000</td><td><span class="badge badge-danger">Overdue</span></td></tr>
-                <tr><td>CV Maju Makmur</td><td>Rp 3.150.000</td><td><span class="badge badge-warning">Pending</span></td></tr>
-                <tr><td>Toko Rezeki Abadi</td><td>Rp 920.000</td><td><span class="badge badge-warning">Pending</span></td></tr>
-                <tr><td>Warung Makan Bu Ani</td><td>Rp 1.780.000</td><td><span class="badge badge-danger">Overdue</span></td></tr>
+                @forelse($pendingPayments as $invoice)
+                <tr>
+                    <td>{{ $invoice->customer->name }}</td>
+                    <td>Rp {{ number_format($invoice->remaining_balance, 0, ',', '.') }}</td>
+                    <td>
+                        @if($invoice->status === 'overdue')
+                            <span class="badge badge-danger">Overdue</span>
+                        @else
+                            <span class="badge badge-warning">Pending</span>
+                        @endif
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="3" style="text-align:center;padding:40px;color:var(--muted);">Semua pembayaran sudah lunas</td>
+                </tr>
+                @endforelse
                 </tbody>
             </table>
         </div>
@@ -219,12 +183,25 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr><td>Gula Pasir 1kg</td><td><b class="danger-text">12 pcs</b></td><td>Gudang Jakarta</td></tr>
-                <tr><td>Minyak Goreng 2L</td><td><b class="danger-text">8 pcs</b></td><td>Gudang Bekasi</td></tr>
-                <tr><td>Beras Premium 5kg</td><td><b style="color: var(--warning);">25 pcs</b></td><td>Gudang Jakarta</td></tr>
-                <tr><td>Kopi Bubuk Robusta 250g</td><td><b style="color: var(--warning);">14 pcs</b></td><td>Gudang Bekasi</td></tr>
-                <tr><td>Susu UHT Full Cream 1L</td><td><b class="danger-text">0 pcs</b></td><td>Gudang Jakarta</td></tr>
-                <tr><td>Teh Celup Melati 25s</td><td><b style="color: var(--warning);">18 pcs</b></td><td>Gudang Tangerang</td></tr>
+                @forelse($lowStockProducts as $product)
+                <tr>
+                    <td>{{ $product->name }}</td>
+                    <td>
+                        @if($product->stock == 0)
+                            <b class="danger-text">{{ $product->stock }} pcs</b>
+                        @elseif($product->stock < 10)
+                            <b class="danger-text">{{ $product->stock }} pcs</b>
+                        @else
+                            <b style="color: var(--warning);">{{ $product->stock }} pcs</b>
+                        @endif
+                    </td>
+                    <td>{{ $product->warehouse->name ?? '-' }}</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="3" style="text-align:center;padding:40px;color:var(--muted);">Semua stok aman</td>
+                </tr>
+                @endforelse
                 </tbody>
             </table>
         </div>

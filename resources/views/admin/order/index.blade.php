@@ -6,50 +6,69 @@
 
 @section('content')
 <div class="section-head">
-    <h2>All Orders</h2>
-    <p>Semua pesanan dari seluruh tim sales</p>
+    <h2>Order</h2>
+    <p>Monitor dan kelola semua order dari tim sales</p>
 </div>
+
+@if(session('success'))
+    <div style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;padding:12px 16px;border-radius:10px;margin-bottom:16px;">
+        ✔ {{ session('success') }}
+    </div>
+@endif
 
 <div class="toolbar">
     <label class="search-box">
         <span>⌕</span>
         <input type="search" placeholder="Cari nomor order atau pelanggan...">
     </label>
-    <button class="button button-primary">＋ Buat Order Manual</button>
 </div>
 
 <article class="card">
     <div class="table-responsive">
         <table>
             <thead>
-            <tr><th>No. Order</th><th>Tanggal</th><th>Sales</th><th>Pelanggan</th><th>Item</th><th>Total</th><th>Status</th><th>Aksi</th></tr>
+                <tr>
+                    <th>Nomor Order</th>
+                    <th>Customer</th>
+                    <th>Tanggal</th>
+                    <th>Pembayaran</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
             </thead>
             <tbody>
-            <tr>
-                <td><b>SO-260721-018</b></td>
-                <td>21 Jul 2026</td>
-                <td>Andi S.</td>
-                <td>Toko Berkah Jaya</td>
-                <td>7</td>
-                <td>Rp 3.450.000</td>
-                <td><span class="badge badge-warning">Pending</span></td>
-                <td>
-                    <button class="button button-primary" style="padding: 7px 12px; font-size: 11px;">Approve</button>
-                </td>
-            </tr>
-            <tr>
-                <td><b>SO-260721-017</b></td>
-                <td>21 Jul 2026</td>
-                <td>Budi S.</td>
-                <td>UD Sinar Baru</td>
-                <td>12</td>
-                <td>Rp 5.800.000</td>
-                <td><span class="badge badge-success">Approved</span></td>
-                <td>
-                    <button class="button button-soft" style="padding: 7px 12px; font-size: 11px;">Detail</button>
-                </td>
-            </tr>
-            </tbody>
+                @forelse($orders as $order)
+                    <tr>
+                        <td><b>{{ $order->order_number }}</b></td>
+                        <td>{{ $order->customer->name }}</td>
+                        <td>{{ \Carbon\Carbon::parse($order->order_date)->format('d M Y') }}</td>
+                        <td>{{ ucfirst($order->payment_type) }}{{ $order->payment_type === 'credit' ? ' (' . $order->payment_term_days . 'h)' : '' }}</td>
+                        <td>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
+                        <td>
+                            @if($order->status === 'pending')
+                                <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Pending</span>
+                            @elseif($order->status === 'approved')
+                                <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Approved</span>
+                            @elseif($order->status === 'processing')
+                                <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Processing</span>
+                            @else
+                                <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Rejected</span>
+                            @endif
+                        </td>
+                        <td>
+                            <a href="{{ route('admin.order.show', $order->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">Detail</a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" style="padding:60px 20px;text-align:center;color:var(--muted);">
+                            <div style="font-size:48px;margin-bottom:12px;">🛒</div>
+                            <p style="font-size:16px;font-weight:500;">Belum ada sales order</p>
+                            <p style="font-size:13px;">Order akan muncul setelah dibuat dari kunjungan</p>
+                        </td>
+                    </tr>
+                @endforelse
         </table>
     </div>
 </article>

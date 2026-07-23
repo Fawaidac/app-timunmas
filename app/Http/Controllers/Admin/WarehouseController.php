@@ -39,9 +39,8 @@ class WarehouseController extends Controller
 
     public function update(UpdateWarehouseRequest $request, Warehouse $warehouse)
     {
-        $warehouse->update(array_merge($request->validated(), [
-            'is_active' => $request->has('is_active'),
-        ]));
+        $warehouse->update($request->validated());
+
         return redirect()->route('admin.warehouses.show', $warehouse->id)
             ->with('success', 'Gudang berhasil diperbarui.');
     }

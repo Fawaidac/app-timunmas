@@ -73,7 +73,7 @@
         </div>
 
         <div class="button-row" style="margin-top:24px;display:flex;gap:12px;">
-            <a href="{{ route('admin.products.index') }}" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
+            <a href="javascript:history.back()" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
             <button type="submit" class="button button-primary" style="flex:2;">Simpan Barang</button>
         </div>
     </form>

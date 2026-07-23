@@ -40,15 +40,15 @@
             <textarea name="address" class="form-control" rows="3" placeholder="Jl. Contoh No. 1, Kelurahan, Kecamatan, Kota">{{ old('address') }}</textarea>
         </div>
 
-        <div class="field">
+        {{-- <div class="field">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}>
                 <span>Gudang Aktif</span>
             </label>
-        </div>
+        </div> --}}
 
         <div class="button-row" style="margin-top:24px;display:flex;gap:12px;">
-            <a href="{{ route('admin.warehouses.index') }}" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
+            <a href="javascript:history.back()" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
             <button type="submit" class="button button-primary" style="flex:2;">Simpan Gudang</button>
         </div>
     </form>
