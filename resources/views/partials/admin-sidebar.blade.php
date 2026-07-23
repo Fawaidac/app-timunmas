@@ -15,10 +15,10 @@
 
         <div class="nav-label">Sales Management</div>
         <a href="{{ route('admin.orders') }}" class="{{ request()->routeIs('admin.orders') ? 'active' : '' }}">
-            <i class="nav-icon ri-shopping-cart-2-line"></i><span>All Orders</span>
+            <i class="nav-icon ri-shopping-cart-2-line"></i><span>Order</span>
         </a>
         <a href="{{ route('admin.visits') }}" class="{{ request()->routeIs('admin.visits') ? 'active' : '' }}">
-            <i class="nav-icon ri-map-pin-2-line"></i><span>Sales Activity</span>
+            <i class="nav-icon ri-map-pin-2-line"></i><span>Kunjungan Sales</span>
         </a>
 
         <div class="nav-label">Financial</div>
@@ -30,17 +30,17 @@
         </a>
 
         <div class="nav-label">Master Data</div>
-        <a href="{{ route('admin.products') }}" class="{{ request()->routeIs('admin.products') ? 'active' : '' }}">
-            <i class="nav-icon ri-box-3-line"></i><span>Products</span>
+        <a href="{{ route('admin.products.index') }}" class="{{ request()->routeIs('admin.products*') ? 'active' : '' }}">
+            <i class="nav-icon ri-box-3-line"></i><span>Barang</span>
         </a>
-        <a href="{{ route('admin.warehouses') }}" class="{{ request()->routeIs('admin.warehouses') ? 'active' : '' }}">
-            <i class="nav-icon ri-building-line"></i><span>Warehouses</span>
+        <a href="{{ route('admin.warehouses.index') }}" class="{{ request()->routeIs('admin.warehouses*') ? 'active' : '' }}">
+            <i class="nav-icon ri-building-line"></i><span>Gudang</span>
         </a>
-        <a href="{{ route('admin.customers') }}" class="{{ request()->routeIs('admin.customers') ? 'active' : '' }}">
-            <i class="nav-icon ri-team-line"></i><span>Customers</span>
+        <a href="{{ route('admin.customers.index') }}" class="{{ request()->routeIs('admin.customers*') ? 'active' : '' }}">
+            <i class="nav-icon ri-team-line"></i><span>Customer</span>
         </a>
-        <a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users') ? 'active' : '' }}">
-            <i class="nav-icon ri-user-settings-line"></i><span>Users</span>
+        <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users*') ? 'active' : '' }}">
+            <i class="nav-icon ri-user-settings-line"></i><span>Pengguna</span>
         </a>
 
         <div class="nav-label">Reports</div>

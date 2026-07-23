@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\WarehouseController;
+use App\Http\Controllers\Admin\UserController;
 
 // Auth routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -27,9 +31,17 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::view('/visits', 'admin.kunjungan.index')->name('visits');
     Route::view('/invoices', 'admin.tagihan.index')->name('invoices');
     Route::view('/payments', 'admin.pembayaran.index')->name('payments');
-    Route::view('/products', 'admin.barang.index')->name('products');
-    Route::view('/warehouses', 'admin.gudang.index')->name('warehouses');
-    Route::view('/customers', 'admin.pelanggan.index')->name('customers');
-    Route::view('/users', 'admin.pengguna.index')->name('users');
     Route::view('/reports', 'admin.laporan.index')->name('reports');
+
+    // CRUD: Barang / Products
+    Route::resource('products', ProductController::class);
+
+    // CRUD: Customer / Pelanggan
+    Route::resource('customers', CustomerController::class);
+
+    // CRUD: Gudang / Warehouses
+    Route::resource('warehouses', WarehouseController::class);
+
+    // CRUD: Pengguna / Users
+    Route::resource('users', UserController::class);
 });

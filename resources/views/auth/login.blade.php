@@ -11,9 +11,9 @@
 <div class="card" style="max-width: 420px; width: 100%; padding: 40px;">
     <div style="text-align: center; margin-bottom: 30px;">
         <div style="display: inline-flex; align-items: center; justify-content: center; width: 70px; height: 70px; background: linear-gradient(135deg, #c2410c, #ea580c); border-radius: 20px; margin-bottom: 20px;">
-            <span style="font-size: 36px; font-weight: 900; color: white;">T</span>
+            <span style="font-size: 36px; font-weight: 900; color: white;">A</span>
         </div>
-        <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #1f2937;">Timun Mas</h1>
+        <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #1f2937;">ASRI</h1>
         <p style="margin: 5px 0 0; color: #6b7280; font-size: 14px;">Sales Force Automation</p>
     </div>
 
@@ -48,10 +48,8 @@
 
     <div style="margin-top: 25px; padding-top: 25px; border-top: 1px solid #e5e7eb; text-align: center;">
         <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-            Demo Login:<br>
-            <span style="color: #4b5563;"><b>Admin:</b> admin@timunmas.com</span><br>
-            <span style="color: #4b5563;"><b>Sales:</b> sales@timunmas.com</span><br>
-            <span style="color: #4b5563;"><b>Password:</b> password</span>
+            © Copyright 2026 ASRI<br>
+            <span style="color: #4b5563;">All rights reserved</span><br>
         </p>
     </div>
 </div>
