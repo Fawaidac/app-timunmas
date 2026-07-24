@@ -4,17 +4,89 @@
 @section('page_title', 'Pencarian Stok Barang')
 @section('page_description', 'Cek stok aktual per gudang sebelum membuat order pelanggan')
 
+@push('styles')
+<style>
+/* Styling Pagination Modern & Clean */
+.pagination-wrapper {
+    margin-top: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.pagination-info {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.pagination-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.pagination-container .page-item .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Hover state */
+.pagination-container .page-item .page-link:hover {
+    border-color: #f97316;
+    color: #ea580c;
+    background-color: #fff7ed;
+}
+
+/* Active page state */
+.pagination-container .page-item.active .page-link {
+    background-color: #f97316;
+    border-color: #f97316;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(249, 115, 22, 0.25);
+}
+
+/* Disabled state */
+.pagination-container .page-item.disabled .page-link {
+    background-color: #f8fafc;
+    border-color: #e2e8f0;
+    color: #cbd5e1;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+</style>
+@endpush
+
 @section('content')
-<div class="toolbar">
-    <label class="search-box">
+<!-- Form Pencarian Server-Side -->
+<form action="{{ route('sales.stok.index') }}" method="GET" class="toolbar">
+    <label class="search-box" style="width: 100%; max-width: 400px;">
         <span>⌕</span>
-        <input type="search" id="product-search" placeholder="Cari nama barang, SKU, atau kategori...">
+        <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama barang, SKU, atau kategori..." onchange="this.form.submit()">
     </label>
-</div>
+</form>
 
 <div class="product-grid" id="product-grid">
     @forelse($products as $product)
-        <article class="product-card" data-product="{{ strtolower($product->name . ' ' . $product->sku . ' ' . $product->category) }}">
+        <article class="product-card">
             {{-- Placeholder image produk --}}
             <div class="product-image" style="background:linear-gradient(135deg,#fff7ed,#fed7aa);border-radius:12px;width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:48px;">
                 📦
@@ -50,20 +122,43 @@
     @empty
         <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--muted);">
             <div style="font-size:48px;margin-bottom:12px;">📦</div>
-            <p style="font-size:16px;font-weight:500;">Belum ada data barang</p>
+            <p style="font-size:16px;font-weight:500;">Barang tidak ditemukan</p>
+            <p style="font-size:13px;">Coba kata kunci pencarian yang berbeda.</p>
         </div>
     @endforelse
 </div>
 
-@push('scripts')
-<script>
-document.getElementById('product-search').addEventListener('input', function () {
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('#product-grid .product-card').forEach(card => {
-        card.style.display = card.dataset.product.includes(q) ? '' : 'none';
-    });
-});
-</script>
-@endpush
-@endsection
+<!-- SECTION PAGINATION MODERN -->
+@if($products->hasPages())
+    <div class="pagination-wrapper">
+        <div class="pagination-info">
+            Menampilkan <b>{{ $products->firstItem() }}</b> - <b>{{ $products->lastItem() }}</b> dari total <b>{{ $products->total() }}</b> barang
+        </div>
 
+        <ul class="pagination-container">
+            {{-- Tombol Previous --}}
+            @if ($products->onFirstPage())
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+            @else
+                <li class="page-item"><a class="page-link" href="{{ $products->previousPageUrl() }}" rel="prev">‹</a></li>
+            @endif
+
+            {{-- Angka Halaman --}}
+            @foreach ($products->getUrlRange(1, $products->lastPage()) as $page => $url)
+                @if ($page == $products->currentPage())
+                    <li class="page-item active"><span class="page-link">{{ $page }}</span></li>
+                @else
+                    <li class="page-item"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>
+                @endif
+            @endforeach
+
+            {{-- Tombol Next --}}
+            @if ($products->hasMorePages())
+                <li class="page-item"><a class="page-link" href="{{ $products->nextPageUrl() }}" rel="next">›</a></li>
+            @else
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+            @endif
+        </ul>
+    </div>
+@endif
+@endsection

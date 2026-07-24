@@ -23,7 +23,9 @@
     </label>
     <div style="display:flex;gap:12px;">
         <a href="{{ route('sales.kunjungan.index') }}" class="button button-soft">← Kembali ke Kunjungan</a>
-        <a href="{{ route('sales.order.create') }}" class="button button-primary">＋ Tambah Order Baru</a>
+        <a href="{{ route('sales.order.create', ['customer_id' => request('customer_id'), 'visit_id' => request('visit_id')]) }}" class="button button-primary">
+            ＋ Tambah Order Baru
+        </a>
     </div>
 </div>
 

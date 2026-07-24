@@ -16,7 +16,7 @@ class VisitController extends Controller
     {
         $visits = SalesVisit::with(['customer', 'sales'])
             ->where('sales_id', auth()->id())
-            ->orderBy('visit_date', 'desc')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         return view('sales.kunjungan.index', compact('visits'));

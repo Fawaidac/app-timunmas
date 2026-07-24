@@ -6,14 +6,31 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function index()
+public function index(Request $request)
     {
-        $users = User::orderBy('name')->get();
+        $query = User::orderBy('name');
+
+        // Filter pencarian server-side
+        if ($request->filled('search')) {
+            $search = strtolower($request->search);
+            $query->where(function($q) use ($search) {
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(role) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(area) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(phone) LIKE ?', ["%{$search}%"]);
+            });
+        }
+
+        // Ambil 10 data per halaman
+        $users = $query->paginate(10)->withQueryString();
+
         return view('admin.pengguna.index', compact('users'));
     }
 

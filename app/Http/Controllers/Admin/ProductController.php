@@ -7,13 +7,26 @@ use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Product;
 use App\Models\Warehouse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
-    public function index()
+public function index(Request $request)
     {
-        $products = Product::with('warehouses')->orderBy('name')->get();
+        $query = Product::with('warehouses')->orderBy('name');
+
+        if ($request->filled('search')) {
+            $search = strtolower($request->search);
+            $query->where(function($q) use ($search) {
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(sku) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(category) LIKE ?', ["%{$search}%"]);
+            });
+        }
+
+        $products = $query->paginate(8)->withQueryString();
+
         return view('admin.barang.index', compact('products'));
     }
 

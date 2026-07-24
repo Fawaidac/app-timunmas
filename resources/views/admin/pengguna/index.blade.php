@@ -4,6 +4,74 @@
 @section('page_title', 'User Management')
 @section('page_description', 'Kelola pengguna sistem dan hak akses')
 
+@push('styles')
+<style>
+/* Style Pagination Modern */
+.pagination-wrapper {
+    margin-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.pagination-info {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.pagination-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.pagination-container .page-item .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+}
+
+.pagination-container .page-item .page-link:hover {
+    border-color: #f97316;
+    color: #ea580c;
+    background-color: #fff7ed;
+}
+
+.pagination-container .page-item.active .page-link {
+    background-color: #f97316;
+    border-color: #f97316;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(249, 115, 22, 0.25);
+}
+
+.pagination-container .page-item.disabled .page-link {
+    background-color: #f8fafc;
+    border-color: #e2e8f0;
+    color: #cbd5e1;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="section-head">
     <h2>User Management</h2>
@@ -21,11 +89,14 @@
     </div>
 @endif
 
+<!-- Toolbar Pencarian Server-Side -->
 <div class="toolbar">
-    <label class="search-box">
-        <span>⌕</span>
-        <input type="search" id="searchInput" placeholder="Cari pengguna...">
-    </label>
+    <form action="{{ route('admin.users.index') }}" method="GET" style="flex: 1; max-width: 400px;">
+        <label class="search-box" style="width: 100%;">
+            <span>⌕</span>
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama, email, role, atau wilayah..." onchange="this.form.submit()">
+        </label>
+    </form>
     <a href="{{ route('admin.users.create') }}" class="button button-primary">＋ Tambah User</a>
 </div>
 
@@ -33,7 +104,7 @@
     <div class="table-responsive">
         <table id="userTable">
             <thead>
-                <tr class="user-row">
+                <tr>
                     <th>Nama</th>
                     <th>Email</th>
                     <th>Role</th>
@@ -88,24 +159,40 @@
             </tbody>
         </table>
     </div>
+
+    <!-- SECTION PAGINATION -->
+    @if($users->hasPages())
+        <div class="pagination-wrapper">
+            <div class="pagination-info">
+                Menampilkan <b>{{ $users->firstItem() }}</b> - <b>{{ $users->lastItem() }}</b> dari total <b>{{ $users->total() }}</b> pengguna
+            </div>
+
+            <ul class="pagination-container">
+                {{-- Tombol Previous --}}
+                @if ($users->onFirstPage())
+                    <li class="page-item disabled"><span class="page-link">‹</span></li>
+                @else
+                    <li class="page-item"><a class="page-link" href="{{ $users->previousPageUrl() }}" rel="prev">‹</a></li>
+                @endif
+
+                {{-- Angka Halaman --}}
+                @foreach ($users->getUrlRange(1, $users->lastPage()) as $page => $url)
+                    @if ($page == $users->currentPage())
+                        <li class="page-item active"><span class="page-link">{{ $page }}</span></li>
+                    @else
+                        <li class="page-item"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>
+                    @endif
+                @endforeach
+
+                {{-- Tombol Next --}}
+                @if ($users->hasMorePages())
+                    <li class="page-item"><a class="page-link" href="{{ $users->nextPageUrl() }}" rel="next">›</a></li>
+                @else
+                    <li class="page-item disabled"><span class="page-link">›</span></li>
+                @endif
+            </ul>
+        </div>
+    @endif
 </article>
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const searchInput = document.getElementById('searchInput');
-    const rows = document.querySelectorAll('#userTable tbody tr');
 
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function (e) {
-            const query = e.target.value.toLowerCase().trim();
-
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(query) ? '' : 'none';
-            });
-        });
-    }
-});
-</script>
-@endpush
 @endsection

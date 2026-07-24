@@ -53,7 +53,7 @@
 
                 @if($visit->purpose === 'order' || $visit->purpose === 'collection')
                     @if($visit->checkin_time)
-                        <a href="{{ route('sales.order.index', ['customer_id' => $visit->customer_id]) }}" 
+                        <a href="{{ route('sales.order.index', ['customer_id' => $visit->customer_id, 'visit_id' => $visit->id]) }}" 
                             class="button button-primary full-width" 
                             style="margin-top:12px; padding:9px; font-size:11px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
                                 Sales Order

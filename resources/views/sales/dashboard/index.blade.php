@@ -86,10 +86,10 @@
 
         @forelse($ruteKunjungan as $visit)
             <div class="route-item">
-                <div class="route-dot">{{ $visit->hour }}</div>
+                <div class="route-dot">⏰</div>
                 <div>
                     <b>{{ $visit->customer->name }}</b>
-                    <p>{{ $visit->time_label }} • {{ $visit->customer->address ?? 'Lokasi' }} • {{ $visit->status_label }}</p>
+                    <p>{{ $visit->distance_meters }} m • {{ $visit->customer->address ?? 'Lokasi' }} • {{ $visit->status_label }}</p>
                 </div>
             </div>
         @empty

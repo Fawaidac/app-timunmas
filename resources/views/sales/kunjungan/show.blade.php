@@ -17,7 +17,7 @@
             @method('DELETE')
             <button type="submit" class="button button-soft" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;">🗑️ Hapus</button>
         </form>
-        <a href="javascript:history.back()" class="button button-soft">← Kembali</a>
+        <a href="{{ route('sales.kunjungan.index') }}" class="button button-soft">← Kembali</a>
     </div>
 </div>
 

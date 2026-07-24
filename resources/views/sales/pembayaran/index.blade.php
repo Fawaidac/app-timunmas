@@ -6,7 +6,7 @@
 
 @section('content')
 <div style="display:flex;gap:8px;margin-bottom:16px;">
-    <a href="{{ route('sales.order.show', $order->id) }}" class="button button-soft">← Kembali</a>
+    <a href="{{ route('sales.kunjungan.index') }}" class="button button-soft">← Kembali</a>
 </div>
 
 @if(session('error'))

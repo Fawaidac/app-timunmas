@@ -28,12 +28,15 @@ class OrderController extends Controller
         return view('sales.order.index', compact('orders'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $customers = \App\Models\Customer::orderBy('name')->get();
         $products = \App\Models\Product::with('warehouses')->orderBy('name')->get();
 
-        return view('sales.order.create-standalone', compact('customers', 'products'));
+        $selectedCustomerId = $request->query('customer_id');
+        $selectedVisitId = $request->query('visit_id');
+
+        return view('sales.order.create-standalone', compact('customers', 'products', 'selectedCustomerId', 'selectedVisitId'));
     }
 
     public function store(StoreOrderRequest $request)
