@@ -44,7 +44,7 @@
         </a>
 
         <div class="nav-label">Reports</div>
-        <a href="{{ route('admin.reports') }}" class="{{ request()->routeIs('admin.reports') ? 'active' : '' }}">
+        <a href="{{ route('admin.reports.index') }}" class="{{ request()->routeIs('admin.reports.index') ? 'active' : '' }}">
             <i class="nav-icon ri-bar-chart-2-line"></i><span>Analytics</span>
         </a>
     </nav>

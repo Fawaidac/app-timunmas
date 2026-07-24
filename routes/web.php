@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\TagihanController as AdminTagihanController;
 use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\LaporanController as AdminLaporanController;
 use App\Http\Controllers\Sales\DashboardController;
 use App\Http\Controllers\Sales\VisitController;
 use App\Http\Controllers\Sales\OrderController;
@@ -67,7 +68,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders');
     Route::get('/order/{id}', [AdminOrderController::class, 'show'])->name('order.show');
-    // Route::view('/orders', 'admin.order.index')->name('orders');
+
     Route::get('/visits', [\App\Http\Controllers\Admin\VisitController::class, 'index'])->name('visits');
     Route::get('/visits/{id}', [\App\Http\Controllers\Admin\VisitController::class, 'show'])->name('visits.show');
     // Tagihan / Invoices
@@ -78,7 +79,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/payments/{id}', [AdminPembayaranController::class, 'show'])->name('pembayaran.show');
     Route::post('/payments/{id}/approve', [AdminPembayaranController::class, 'approve'])->name('pembayaran.approve');
     Route::post('/payments/{id}/reject', [AdminPembayaranController::class, 'reject'])->name('pembayaran.reject');
-    Route::view('/reports', 'admin.laporan.index')->name('reports');
+    
+    Route::get('/reports', [AdminLaporanController::class, 'index'])->name('reports.index');
 
     // CRUD: Barang / Products
     Route::resource('products', ProductController::class);
