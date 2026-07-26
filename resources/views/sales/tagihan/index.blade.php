@@ -30,7 +30,7 @@
 <article class="card top-gap">
     <div class="table-responsive">
         <table>
-            <thead><tr><th>No. Invoice</th><th>Pelanggan</th><th>Jatuh Tempo</th><th>Sisa Tagihan</th><th>Umur</th><th>Status</th><th>Status Pembayaran</th></tr></thead>
+            <thead><tr><th>No. Invoice</th><th>Pelanggan</th><th>Jatuh Tempo</th><th>Sisa Tagihan</th><th>Umur</th><th>Status</th><th>Status Pembayaran</th><th>Aksi</th></tr></thead>
             <tbody>
             @forelse($invoices as $invoice)
             <tr>
@@ -54,10 +54,24 @@
                         💰 {{ $paymentStatus ? ($statusLabels[$paymentStatus] ?? $paymentStatus) : 'Belum Ada Bayar' }}
                     </a>
                 </td>
+                <td>
+                    @php
+                        $pendingPayment = $invoice->payments?->where('status', 'pending_approval')->first();
+                        $rejectedPayment = $invoice->payments?->where('status', 'rejected')->first();
+                    @endphp
+                    
+                    @if($pendingPayment)
+                        <span style="display:inline-block;padding:6px 12px;font-size:11px;background:#fff3cd;color:#856404;border-radius:12px;">⏳ Menunggu konfirmasi</span>
+                    @elseif($rejectedPayment)
+                        <a href="{{ route('sales.pembayaran.index', $invoice->order_id) }}" class="button button-primary" style="padding:6px 12px;font-size:11px;background:#dc2626;">🔄 Bayar Lagi</a>
+                    @else
+                        <a href="{{ route('sales.pembayaran.index', $invoice->order_id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">💰 Titip Pembayaran</a>
+                    @endif
+                </td>
             </tr>
             @empty
             <tr>
-                <td colspan="6" style="text-align:center;padding:40px 20px;color:#999;">
+                <td colspan="8" style="text-align:center;padding:40px 20px;color:#999;">
                     📭 Belum ada tagihan
                 </td>
             </tr>

@@ -42,7 +42,7 @@
                     <option value="credit" {{ old('payment_type') === 'credit' ? 'selected' : '' }}>Kredit</option>
                 </select>
             </div>
-            <div class="field" id="termField" style="display:none;">
+            <div class="field" id="termField">
                 <label>Tempo Pembayaran (hari) <span style="color:#ef4444;">*</span></label>
                 <input type="number" name="payment_term_days" class="form-control" value="{{ old('payment_term_days', 7) }}" min="1">
             </div>

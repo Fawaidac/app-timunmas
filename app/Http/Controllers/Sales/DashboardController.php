@@ -45,7 +45,8 @@ class DashboardController extends Controller
 
         // Tagihan jatuh tempo (hari ini dan yang lewat)
         $tagihanJatuhTempo = Invoice::whereHas('order', function($q) use ($salesId) {
-                $q->where('sales_id', $salesId);
+                $q->where('sales_id', $salesId)
+                  ->where('status', '!=', 'cancelled');
             })
             ->where('status', '!=', 'paid')
             ->where('due_date', '<=', $today)
@@ -56,7 +57,7 @@ class DashboardController extends Controller
 
         // Pembayaran dititipkan (pending approval)
         $pembayaranDititipkan = Payment::where('sales_id', $salesId)
-            ->where('status', 'pending_approval')
+            ->where('status', 'approved')
             ->get();
         
         $jumlahPembayaranDititipkan = $pembayaranDititipkan->count();

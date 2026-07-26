@@ -150,7 +150,7 @@
                     <option value="credit" {{ old('payment_type') === 'credit' ? 'selected' : '' }}>Kredit</option>
                 </select>
             </div>
-            <div class="field" id="termField" style="display:none;">
+            <div class="field" id="termField">
                 <label style="font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block;">Tempo Pembayaran (hari) <span style="color:#ef4444;">*</span></label>
                 <input type="number" name="payment_term_days" class="form-control custom-input" value="{{ old('payment_term_days', 7) }}" min="1">
             </div>
@@ -231,23 +231,36 @@
 </article>
 
 @push('scripts')
-
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
+// Fungsi Re-inisialisasi Select2
 function initSelect2(element) {
-    const target = element ? $(element) : $('.product-select');
-    target.select2({
-        placeholder: "-- Pilih Produk --",
-        allowClear: true,
-        width: '100%'
+    const targets = element ? $(element) : $('.product-select');
+    
+    targets.each(function() {
+        const $this = $(this);
+        
+        // Hancurkan Select2 lama jika sudah pernah di-init agar tidak konflik
+        if ($this.hasClass("select2-hidden-accessible")) {
+            $this.select2('destroy');
+        }
+        
+        // Inisialisasi ulang
+        $this.select2({
+            placeholder: "-- Pilih Produk --",
+            allowClear: true,
+            width: '100%'
+        }).on('change', function() {
+            // Trigger manual fillPrice saat opsi diubah via Select2
+            fillPrice(this);
+        });
     });
 }
 
-// Toggle payment term field
 $(document).ready(function() {
-    // Inisialisasi Select2 di awal
+    // Inisialisasi Select2 awal saat dokumen siap
     initSelect2();
 
     // Toggle Payment Term
@@ -262,9 +275,51 @@ $(document).ready(function() {
     calculate();
 });
 
-// Initial check
-if (document.getElementById('payment_type').value === 'credit') {
-    document.getElementById('termField').style.display = 'block';
+// Fungsi Tambah Baris Baru (Fix Bug Select2)
+function addRow() {
+    const tbody = document.querySelector('#itemsTable tbody');
+    const firstRow = tbody.querySelector('tr');
+
+    // 1. Destroy Select2 pada baris acuan sebelum kloning
+    $(firstRow).find('.product-select').select2('destroy');
+
+    // 2. Kloning baris HTML murni
+    const newRow = firstRow.cloneNode(true);
+
+    // 3. Re-init Select2 pada baris pertama tadi
+    initSelect2($(firstRow).find('.product-select'));
+
+    // 4. Bersihkan nilai/input pada baris baru
+    const newSelect = $(newRow).find('.product-select');
+    newSelect.val('').trigger('change.select2'); // Reset value select
+    
+    // Hapus kontainer HTML sisa Select2 kloning jika terikut
+    $(newRow).find('.select2-container').remove(); 
+    
+    newRow.querySelector('.qty-input').value = 1;
+    newRow.querySelector('.price-input').value = 0;
+    newRow.querySelector('.subtotal-display').value = "0";
+
+    // 5. Masukkan baris baru ke tabel
+    tbody.appendChild(newRow);
+
+    // 6. Inisialisasi Select2 khusus pada baris baru
+    initSelect2(newSelect);
+
+    calculate();
+}
+
+function removeRow(btn) {
+    const rows = document.querySelectorAll('#itemsTable tbody tr');
+    if (rows.length > 1) {
+        const row = $(btn).closest('tr');
+        // Destroy instance select2 baris yang akan dihapus
+        row.find('.product-select').select2('destroy');
+        row.remove();
+        calculate();
+    } else {
+        alert('Minimal harus ada 1 item produk.');
+    }
 }
 
 function fillPrice(select) {
@@ -285,7 +340,6 @@ function fillPrice(select) {
         qtyInput.removeAttribute('max');
     }
     
-    // Jalankan validasi qty
     validateQty(qtyInput);
 }
 
@@ -299,7 +353,6 @@ function validateQty(input) {
     const maxStock = parseFloat(option.dataset.stock) || 0;
     let currentQty = parseFloat(input.value) || 0;
 
-    // Jika stok 0, paksa nilai qty jadi 0
     if (maxStock <= 0) {
         alert(`Stok produk "${option.text.split('-')[0].trim()}" sedang KOSONG (0)!`);
         input.value = 0;
@@ -307,13 +360,11 @@ function validateQty(input) {
         return;
     }
 
-    // Jika qty diinput Melebihi Stok
     if (currentQty > maxStock) {
         alert(`Jumlah melebihi stok yang tersedia! Maksimal stok hanya ${maxStock}.`);
         input.value = maxStock;
     }
 
-    // Jika qty kurang dari 1
     if (currentQty < 1 && maxStock > 0) {
         input.value = 1;
     }
@@ -336,33 +387,6 @@ function calculate() {
 function formatNumber(num) {
     return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
-
-function addRow() {
-    const tbody = document.querySelector('#itemsTable tbody');
-    const firstRow = tbody.querySelector('tr');
-    const newRow = firstRow.cloneNode(true);
-    
-    newRow.querySelector('.product-select').value = '';
-    newRow.querySelector('.qty-input').value = 1;
-    newRow.querySelector('.price-input').value = 0;
-    newRow.querySelector('.subtotal-display').value = 0;
-    
-    tbody.appendChild(newRow);
-    calculate();
-}
-
-function removeRow(btn) {
-    const rows = document.querySelectorAll('#itemsTable tbody tr');
-    if (rows.length > 1) {
-        btn.closest('tr').remove();
-        calculate();
-    } else {
-        alert('Minimal harus ada 1 item produk.');
-    }
-}
-
-// Initial calculation
-calculate();
 </script>
 @endpush
 @endsection

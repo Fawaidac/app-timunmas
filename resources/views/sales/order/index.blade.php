@@ -65,7 +65,7 @@
                         <td>
                             <a href="{{ route('sales.order.show', $order->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">Detail</a>
                             
-                            @php
+                            {{-- @php
                                 $pendingPayment = $order->invoice?->payments?->where('status', 'pending_approval')->first();
                                 $rejectedPayment = $order->invoice?->payments?->where('status', 'rejected')->first();
                             @endphp
@@ -76,7 +76,7 @@
                                 <a href="{{ route('sales.pembayaran.index', $order->id) }}" class="button button-primary" style="padding:6px 12px;font-size:11px;background:#dc2626;">🔄 Bayar Lagi</a>
                             @else
                                 <a href="{{ route('sales.pembayaran.index', $order->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">💰 Titip Pembayaran</a>
-                            @endif
+                            @endif --}}
                         </td>
                     </tr>
                 @empty

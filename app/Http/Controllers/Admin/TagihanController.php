@@ -12,8 +12,11 @@ class TagihanController extends Controller
 {
     public function index()
     {
-        // Get all invoices dengan stats
+        // Get invoices dari order yang sudah approved (penjualan) dengan stats
         $invoices = Invoice::with(['customer', 'order.sales', 'latestPayment'])
+            ->whereHas('order', function($q) {
+                $q->where('status', '!=', 'cancelled');
+            })
             ->orderBy('due_date', 'asc')
             ->get();
 
@@ -22,7 +25,7 @@ class TagihanController extends Controller
         
         $today = Carbon::today();
         $jatuhTempoHariIni = $invoices->filter(function($inv) use ($today) {
-            return Carbon::parse($inv->due_date)->isSameDay($today);
+            return Carbon::parse($inv->due_date)->isSameDay($today) && $inv->status != 'paid';
         })->sum('remaining_balance');
         
         $lewatJatuhTempo = $invoices->filter(function($inv) use ($today) {
@@ -47,6 +50,8 @@ class TagihanController extends Controller
         $invoices = $invoices->map(function($invoice) use ($today) {
             $dueDate = Carbon::parse($invoice->due_date);
             $invoiceDate = Carbon::parse($invoice->invoice_date);
+            $paymentType = optional($invoice->order)->payment_type === 'cash' ? 'Cash' : 'Kredit';
+            $termDays = $invoice->order->payment_term_days ?? 7;
             
             // Hitung umur tagihan
             $umur = $invoiceDate->diffInDays($today);
@@ -54,16 +59,16 @@ class TagihanController extends Controller
             // Tentukan status badge
             if ($invoice->status == 'paid') {
                 $invoice->badge_status = 'success';
-                $invoice->badge_label = 'Lunas';
+                $invoice->badge_label = $paymentType . ' (Lunas)';
             } elseif ($dueDate->lt($today)) {
                 $invoice->badge_status = 'danger';
-                $invoice->badge_label = 'Terlambat';
+                $invoice->badge_label = 'Terlambat (' . $paymentType . ')';
             } elseif ($dueDate->isSameDay($today)) {
                 $invoice->badge_status = 'warning';
                 $invoice->badge_label = 'Jatuh tempo hari ini';
             } else {
                 $invoice->badge_status = 'info';
-                $invoice->badge_label = 'Belum jatuh tempo';
+                $invoice->badge_label = $paymentType . ' (' . $termDays . 'h)';
             }
             
             $invoice->umur_hari = $umur;

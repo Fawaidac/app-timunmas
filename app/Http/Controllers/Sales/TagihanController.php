@@ -12,12 +12,13 @@ class TagihanController extends Controller
 {
     public function index()
     {
-        // Get invoices dari customer yang pernah dikunjungi sales ini
+        // Get invoices dari customer/order yang disetujui milik sales ini
         $salesId = auth()->id();
         
         $invoices = Invoice::with(['customer', 'order.sales', 'latestPayment'])
             ->whereHas('order', function($q) use ($salesId) {
-                $q->where('sales_id', $salesId);
+                $q->where('sales_id', $salesId)
+                    ->where('status', '!=', 'cancelled');
             })
             ->where('status', '!=', 'paid')
             ->orderBy('due_date', 'asc')
@@ -48,6 +49,8 @@ class TagihanController extends Controller
         $invoices = $invoices->map(function($invoice) use ($today) {
             $dueDate = Carbon::parse($invoice->due_date);
             $invoiceDate = Carbon::parse($invoice->invoice_date);
+            $paymentType = optional($invoice->order)->payment_type === 'cash' ? 'Cash' : 'Kredit';
+            $termDays = $invoice->order->payment_term_days ?? 7;
             
             // Hitung umur tagihan (dari tanggal invoice sampai sekarang)
             $umur = $invoiceDate->diffInDays($today);
@@ -55,13 +58,13 @@ class TagihanController extends Controller
             // Tentukan status badge
             if ($dueDate->lt($today)) {
                 $invoice->badge_status = 'danger';
-                $invoice->badge_label = 'Terlambat';
+                $invoice->badge_label = 'Terlambat (' . $paymentType . ')';
             } elseif ($dueDate->isSameDay($today)) {
                 $invoice->badge_status = 'warning';
                 $invoice->badge_label = 'Jatuh tempo';
             } else {
                 $invoice->badge_status = 'success';
-                $invoice->badge_label = 'Belum jatuh tempo';
+                $invoice->badge_label = $paymentType . ' (' . $termDays . 'h)';
             }
             
             $invoice->umur_hari = $umur;

@@ -17,7 +17,7 @@ class StoreOrderRequest extends FormRequest
             'customer_id'       => 'required|exists:customers,id',
             'order_date'        => 'required|date',
             'payment_type'      => 'required|in:cash,credit',
-            'payment_term_days' => 'required_if:payment_type,credit|integer|min:1',
+            'payment_term_days' => 'nullable|integer|min:1',
             'product_id'        => 'required|array|min:1',
             'product_id.*'      => 'required|exists:products,id',
             'quantity'          => 'required|array|min:1',

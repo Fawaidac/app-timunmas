@@ -61,20 +61,42 @@ class OrderController extends Controller
                 'sales_id'          => auth()->id(),
                 'order_date'        => $request->order_date,
                 'payment_type'      => $request->payment_type,
-                'payment_term_days' => $request->payment_type === 'credit' ? $request->payment_term_days : 7,
+                'payment_term_days' => (int) ($request->payment_term_days ?? 7),
                 'total_amount'      => $total,
                 'status'            => 'pending',
             ]);
 
-            // Buat order items
+            // Buat order items & kurangi stok gudang
             foreach ($request->product_id as $index => $productId) {
+                $qty = (int) $request->quantity[$index];
+
                 OrderItem::create([
                     'order_id'       => $order->id,
                     'product_id'     => $productId,
-                    'quantity'       => $request->quantity[$index],
+                    'quantity'       => $qty,
                     'price_per_unit' => $request->price[$index],
-                    'subtotal'       => $request->quantity[$index] * $request->price[$index],
+                    'subtotal'       => $qty * $request->price[$index],
                 ]);
+
+                // Kurangi stok di gudang (WarehouseStock)
+                $remainingQtyToDeduct = $qty;
+                $warehouseStocks = \App\Models\WarehouseStock::where('product_id', $productId)
+                    ->orderBy('stock_quantity', 'desc')
+                    ->get();
+
+                foreach ($warehouseStocks as $whStock) {
+                    if ($remainingQtyToDeduct <= 0) {
+                        break;
+                    }
+
+                    if ($whStock->stock_quantity >= $remainingQtyToDeduct) {
+                        $whStock->decrement('stock_quantity', $remainingQtyToDeduct);
+                        $remainingQtyToDeduct = 0;
+                    } else {
+                        $remainingQtyToDeduct -= $whStock->stock_quantity;
+                        $whStock->update(['stock_quantity' => 0]);
+                    }
+                }
             }
 
             // Update visit jika dari kunjungan
@@ -87,17 +109,18 @@ class OrderController extends Controller
 
             // Auto-create invoice
             $invoiceNumber = $this->generateInvoiceNumber();
-            $dueDate = now()->addDays($order->payment_term_days);
+            $termDays = (int) ($order->payment_term_days ?: 7);
+            $dueDate = \Carbon\Carbon::parse($order->order_date)->addDays($termDays);
 
             Invoice::create([
-                'invoice_number' => $invoiceNumber,
-                'order_id' => $order->id,
-                'customer_id' => $order->customer_id,
-                'total_amount' => $total,
+                'invoice_number'    => $invoiceNumber,
+                'order_id'          => $order->id,
+                'customer_id'       => $order->customer_id,
+                'total_amount'      => $total,
                 'remaining_balance' => $total,
-                'invoice_date' => $order->order_date,
-                'due_date' => $dueDate,
-                'status' => 'unpaid',
+                'invoice_date'      => $order->order_date,
+                'due_date'          => $dueDate,
+                'status'            => 'unpaid',
             ]);
 
             return $order;

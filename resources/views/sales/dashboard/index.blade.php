@@ -21,11 +21,19 @@
 
 <section class="stat-grid">
     @php
+        $formatRp = function($amount) {
+            if ($amount <= 0) return 'Rp 0';
+            if ($amount >= 1000000) {
+                return 'Rp ' . number_format($amount / 1000000, 1, ',', '.') . ' jt';
+            }
+            return 'Rp ' . number_format($amount, 0, ',', '.');
+        };
+
         $stats = [
             ['label' => 'Kunjungan Hari Ini', 'value' => $totalKunjunganHariIni, 'hint' => $kunjunganSelesai . ' sudah selesai', 'icon' => '⌖'],
-            ['label' => 'Order Hari Ini', 'value' => 'Rp ' . number_format($totalOrderHariIni / 1000000, 1, ',', '.') . ' jt', 'hint' => ($percentageChange >= 0 ? '↑' : '↓') . ' ' . number_format(abs($percentageChange), 0) . '% dari kemarin', 'icon' => '🛒'],
-            ['label' => 'Tagihan Jatuh Tempo', 'value' => $jumlahTagihanJatuhTempo, 'hint' => 'Rp ' . number_format($nilaiTagihanJatuhTempo / 1000000, 1, ',', '.') . ' juta', 'icon' => '▤', 'danger' => $jumlahTagihanJatuhTempo > 0],
-            ['label' => 'Pembayaran Dititipkan', 'value' => 'Rp ' . number_format($nilaiPembayaranDititipkan / 1000000, 1, ',', '.') . ' jt', 'hint' => $jumlahPembayaranDititipkan . ' transaksi', 'icon' => '₿'],
+            ['label' => 'Order Hari Ini', 'value' => $formatRp($totalOrderHariIni), 'hint' => ($percentageChange >= 0 ? '↑' : '↓') . ' ' . number_format(abs($percentageChange), 0) . '% dari kemarin', 'icon' => '🛒'],
+            ['label' => 'Tagihan Jatuh Tempo', 'value' => $jumlahTagihanJatuhTempo, 'hint' => $formatRp($nilaiTagihanJatuhTempo), 'icon' => '▤', 'danger' => $jumlahTagihanJatuhTempo > 0],
+            ['label' => 'Pembayaran Dititipkan', 'value' => $formatRp($nilaiPembayaranDititipkan), 'hint' => $jumlahPembayaranDititipkan . ' transaksi', 'icon' => '₿'],
         ];
     @endphp
 
