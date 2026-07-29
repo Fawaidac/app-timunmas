@@ -27,57 +27,66 @@
     @endforeach
 </section>
 
-<article class="card top-gap">
-    <div class="table-responsive">
-        <table>
-            <thead><tr><th>No. Invoice</th><th>Pelanggan</th><th>Jatuh Tempo</th><th>Sisa Tagihan</th><th>Umur</th><th>Status</th><th>Status Pembayaran</th><th>Aksi</th></tr></thead>
-            <tbody>
-            @forelse($invoices as $invoice)
-            <tr>
-                <td>{{ $invoice->invoice_number }}</td>
-                <td>{{ $invoice->customer->name }}</td>
-                <td>{{ \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') }}</td>
-                <td>Rp {{ number_format($invoice->remaining_balance, 0, ',', '.') }}</td>
-                <td>{{ $invoice->umur_hari }} hari</td>
-                <td><span class="badge badge-{{ $invoice->badge_status }}">{{ $invoice->badge_label }}</span></td>
-                <td>
+<div class="visit-grid" style="margin-top:24px;">
+    @forelse($invoices as $invoice)
+        <article class="visit-card">
+            <div class="visit-top">
+                <h4>{{ $invoice->invoice_number }}</h4>
+                <span class="badge badge-{{ $invoice->badge_status }}">
+                    {{ $invoice->badge_label }}
+                </span>
+            </div>
+
+            <p style="font-weight:500;color:var(--text);margin-bottom:8px;">{{ $invoice->customer->name }}</p>
+
+            <div class="meta-grid">
+                <div>📅 JT: {{ \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') }}</div>
+                <div>💰 Rp {{ number_format($invoice->remaining_balance / 1000, 0, ',', '.') }}k</div>
+                <div>⏱ Umur: {{ $invoice->umur_hari }} hari</div>
+                <div>
                     @php
                         $statusLabels = [
-                            'pending_approval' => 'Menunggu Persetujuan',
-                            'approved'         => 'Disetujui',
-                            'rejected'         => 'Ditolak',
+                            'pending_approval' => '⏳ Menunggu',
+                            'approved'         => '✓ Disetujui',
+                            'rejected'         => '✗ Ditolak',
                         ];
                         $paymentStatus = $invoice->latestPayment?->status;
                     @endphp
+                    {{ $paymentStatus ? ($statusLabels[$paymentStatus] ?? $paymentStatus) : '○ Belum Bayar' }}
+                </div>
+            </div>
 
-                    <a href="" class="button button-soft" style="padding:6px 12px;font-size:11px;">
-                        💰 {{ $paymentStatus ? ($statusLabels[$paymentStatus] ?? $paymentStatus) : 'Belum Ada Bayar' }}
+            <div class="button-row">
+                @php
+                    $pendingPayment = $invoice->payments?->where('status', 'pending_approval')->first();
+                    $rejectedPayment = $invoice->payments?->where('status', 'rejected')->first();
+                @endphp
+                
+                @if($pendingPayment)
+                    <button disabled class="button button-soft full-width" style="margin-top:12px;padding:9px;font-size:11px;text-align:center;background:#fff3cd;color:#856404;cursor:not-allowed;">
+                        ⏳ Menunggu Konfirmasi
+                    </button>
+                @elseif($rejectedPayment)
+                    <a href="{{ route('sales.pembayaran.index', $invoice->order_id) }}" 
+                        class="button button-primary full-width" 
+                        style="margin-top:12px;padding:9px;font-size:11px;text-align:center;background:#dc2626;">
+                        🔄 Bayar Lagi
                     </a>
-                </td>
-                <td>
-                    @php
-                        $pendingPayment = $invoice->payments?->where('status', 'pending_approval')->first();
-                        $rejectedPayment = $invoice->payments?->where('status', 'rejected')->first();
-                    @endphp
-                    
-                    @if($pendingPayment)
-                        <span style="display:inline-block;padding:6px 12px;font-size:11px;background:#fff3cd;color:#856404;border-radius:12px;">⏳ Menunggu konfirmasi</span>
-                    @elseif($rejectedPayment)
-                        <a href="{{ route('sales.pembayaran.index', $invoice->order_id) }}" class="button button-primary" style="padding:6px 12px;font-size:11px;background:#dc2626;">🔄 Bayar Lagi</a>
-                    @else
-                        <a href="{{ route('sales.pembayaran.index', $invoice->order_id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">💰 Titip Pembayaran</a>
-                    @endif
-                </td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="8" style="text-align:center;padding:40px 20px;color:#999;">
-                    📭 Belum ada tagihan
-                </td>
-            </tr>
-            @endforelse
-            </tbody>
-        </table>
-    </div>
-</article>
+                @else
+                    <a href="{{ route('sales.pembayaran.index', $invoice->order_id) }}" 
+                        class="button button-primary full-width" 
+                        style="margin-top:12px;padding:9px;font-size:11px;text-align:center;">
+                        💰 Titip Pembayaran
+                    </a>
+                @endif
+            </div>
+        </article>
+    @empty
+        <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--muted);">
+            <div style="font-size:48px;margin-bottom:12px;">📭</div>
+            <p style="font-size:16px;font-weight:500;">Belum ada tagihan</p>
+            <p style="font-size:14px;color:var(--muted);margin-top:4px;">Tagihan akan muncul setelah ada sales order yang disetujui</p>
+        </div>
+    @endforelse
+</div>
 @endsection
