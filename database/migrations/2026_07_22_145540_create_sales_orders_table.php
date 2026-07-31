@@ -18,10 +18,12 @@ return new class extends Migration
             $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
             $table->foreignId('sales_id')->constrained('users')->onDelete('cascade');
             $table->date('order_date');
-            $table->enum('payment_type', ['cash', 'credit'])->default('cash');
+            // $table->enum('payment_type', ['cash', 'credit'])->default('cash');
+            $table->string('payment_type', 20)->nullable()->default('cash');
             $table->integer('payment_term_days')->default(7);
             $table->decimal('total_amount', 15, 2);
-            $table->enum('status', ['pending', 'approved', 'processing', 'rejected'])->default('pending');
+            // $table->enum('status', ['pending', 'approved', 'processing', 'rejected'])->default('pending');
+            $table->string('status', 20)->nullable()->default('pending');
             $table->timestamps();
         });
     }

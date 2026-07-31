@@ -16,8 +16,10 @@ return new class extends Migration
             $table->foreignId('sales_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
             $table->date('visit_date');
-            $table->enum('purpose', ['merchandising', 'collection', 'order']);
-            $table->enum('status', ['scheduled', 'in_progress', 'completed', 'cancelled'])->default('scheduled');
+            // $table->enum('purpose', ['merchandising', 'collection', 'order']);
+            $table->string('purpose', 100)->nullable();
+            // $table->enum('status', ['scheduled', 'in_progress', 'completed', 'cancelled'])->default('scheduled');
+            $table->string('status', 20)->nullable()->default('scheduled');
             $table->timestamp('checkin_time')->nullable();
             $table->decimal('checkin_latitude', 10, 8)->nullable();
             $table->decimal('checkin_longitude', 11, 8)->nullable();

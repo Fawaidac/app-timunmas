@@ -20,7 +20,8 @@ return new class extends Migration
             $table->decimal('remaining_balance', 15, 2);
             $table->date('invoice_date');
             $table->date('due_date');
-            $table->enum('status', ['unpaid', 'partially_paid', 'paid', 'overdue'])->default('unpaid');
+            // $table->enum('status', ['unpaid', 'partially_paid', 'paid', 'overdue'])->default('unpaid');
+            $table->string('status', 20)->nullable()->default('unpaid');
             $table->timestamps();
         });
     }

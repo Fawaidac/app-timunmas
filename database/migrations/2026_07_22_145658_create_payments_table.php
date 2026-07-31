@@ -18,11 +18,13 @@ return new class extends Migration
             $table->foreignId('invoice_id')->constrained('invoices')->onDelete('cascade');
             $table->foreignId('sales_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
-            $table->enum('payment_method', ['cash', 'transfer', 'check_giro']);
+            // $table->enum('payment_method', ['cash', 'transfer', 'check_giro']);
+            $table->string('payment_method', 20)->nullable();
             $table->decimal('amount_paid', 15, 2);
             $table->string('reference_number', 100)->nullable();
             $table->string('proof_image_url')->nullable();
-            $table->enum('status', ['pending_approval', 'approved', 'rejected'])->default('pending_approval');
+            // $table->enum('status', ['pending_approval', 'approved', 'rejected'])->default('pending_approval');
+            $table->string('status', 20)->nullable()->default('pending_approval');
             $table->text('rejection_reason')->nullable();
             $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('approved_at')->nullable();
