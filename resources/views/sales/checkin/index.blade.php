@@ -43,6 +43,9 @@
                     {{ $visit->customer->latitude }}, {{ $visit->customer->longitude }}
                 </p>
                 <p style="margin:8px 0 0;font-size:12px;color:#78350f;">
+                    Radius Maksimal: 100 meter
+                </p>
+                <p style="margin:8px 0 0;font-size:12px;color:#78350f;">
                     Alamat: {{ $visit->customer->address ?? 'Tidak ada alamat' }}
                 </p>
             @else
@@ -199,6 +202,17 @@ function getGPS() {
                     const distance = calculateDistance(lat, lon, {{ $visit->customer->latitude }}, {{ $visit->customer->longitude }});
                     distanceInfo.textContent = 'Jarak ke {{ $visit->customer->name }}: ' + Math.round(distance) + ' meter';
                     distanceInfo.style.display = 'block';
+
+                    if (distance > 100) {
+                        distanceInfo.style.color = '#991b1b';
+                        distanceInfo.textContent += ' (Terlalu jauh! Maksimal 100 meter)';
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = '✖ Di Luar Jangkauan';
+                    } else {
+                        distanceInfo.style.color = '#065f46';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '✓ Check-in Sekarang';
+                    }
                 @else
                     distanceInfo.textContent = 'Koordinat customer tidak tersedia';
                     distanceInfo.style.display = 'block';

@@ -122,6 +122,11 @@ class VisitController extends Controller
             );
         }
 
+        // Radius check: 100 meters
+        if ($distance !== null && $distance > 50) {
+             return back()->with('error', 'Lokasi Anda terlalu jauh dari customer (' . round($distance) . ' meter). Jarak maksimal adalah 100 meter.');
+        }
+
         $visit->update([
             'checkin_time'      => now(),
             'checkin_latitude'  => $request->checkin_latitude,
