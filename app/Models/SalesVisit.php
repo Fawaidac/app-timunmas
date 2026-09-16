@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
-class SalesVisit extends Model
+class SalesVisit extends FirebirdModel
 {
     protected $fillable = [
         'sales_id', 'customer_id', 'visit_date', 'purpose', 'status',

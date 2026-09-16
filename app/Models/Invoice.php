@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Invoice extends Model
+class Invoice extends FirebirdModel
 {
     protected $fillable = [
         'invoice_number', 'order_id', 'customer_id', 'total_amount',
@@ -28,6 +26,6 @@ class Invoice extends Model
 
     public function latestPayment()
     {
-        return $this->hasOne(Payment::class)->latestOfMany();
+        return $this->hasOne(Payment::class)->latest('id');
     }
 }

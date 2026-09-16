@@ -6,23 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('warehouse_stocks', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('warehouse_id')->constrained('warehouses')->onDelete('cascade');
-            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
-            $table->integer('stock_quantity')->default(0);
+            $table->bigIncrements('id');
+            $table->bigInteger('warehouse_id');
+            $table->bigInteger('product_id');
+            $table->integer('stock_quantity');
             $table->timestamps();
+
+            // Didefinisikan langsung di dalam Create Table
+            $table->foreign('warehouse_id', 'fk_ws_wh')->references('id')->on('warehouses')->onDelete('cascade');
+            $table->foreign('product_id', 'fk_ws_prod')->references('id')->on('products')->onDelete('cascade');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('warehouse_stocks');

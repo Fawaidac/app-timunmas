@@ -7,7 +7,7 @@ use App\Models\Payment;
 use App\Models\SalesOrder;
 use App\Models\SalesVisit;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LaporanController extends Controller
 {
@@ -34,10 +34,7 @@ class LaporanController extends Controller
 
         // Kunjungan Selesai (Completed / Selesai)
         $completedVisits = SalesVisit::where('sales_id', $salesId)
-            ->where(function ($q) {
-                $q->whereRaw('LOWER(status) = ?', ['selesai'])
-                  ->orWhereRaw('LOWER(status) = ?', ['completed']);
-            })
+            ->whereIn('status', ['selesai', 'completed'])
             ->where(function ($q) use ($currentMonth, $currentYear) {
                 $q->whereMonth('visit_date', $currentMonth)
                   ->whereYear('visit_date', $currentYear)
@@ -66,7 +63,7 @@ class LaporanController extends Controller
 
         // 3. Average Order Value (AOV Sales Ini)
         $salesOrdersQuery = SalesOrder::where('sales_id', $salesId)
-            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->where('status', 'approved')
             ->where(function ($q) use ($currentMonth, $currentYear) {
                 $q->whereMonth('order_date', $currentMonth)
                   ->whereYear('order_date', $currentYear)
@@ -82,7 +79,7 @@ class LaporanController extends Controller
 
         // 4. Collection Rate (% Pembayaran Approved vs Total Nilai Order)
         $totalApprovedPayments = Payment::where('sales_id', $salesId)
-            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->where('status', 'approved')
             ->where(function ($q) use ($currentMonth, $currentYear) {
                 $q->whereMonth('approved_at', $currentMonth)
                   ->whereYear('approved_at', $currentYear)
@@ -101,9 +98,8 @@ class LaporanController extends Controller
         $weeklySalesLabels = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'];
         $weeklySalesData = [0, 0, 0, 0];
 
-        $startOfMonth = now()->startOfMonth();
         $ordersThisMonth = SalesOrder::where('sales_id', $salesId)
-            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->where('status', 'approved')
             ->whereMonth('order_date', $currentMonth)
             ->whereYear('order_date', $currentYear)
             ->get();
@@ -128,9 +124,9 @@ class LaporanController extends Controller
                          ->whereYear('created_at', $currentYear);
                   });
             })
-            ->selectRaw('purpose, count(*) as total')
+            ->select('purpose', DB::raw('count(*) as TOTAL'))
             ->groupBy('purpose')
-            ->pluck('total', 'purpose')
+            ->pluck('TOTAL', 'purpose')
             ->toArray();
 
         // Pemetaan Label

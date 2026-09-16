@@ -6,29 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('invoices', function (Blueprint $table) {
-            $table->id();
-            $table->string('invoice_number', 50)->unique();
-            $table->foreignId('order_id')->constrained('sales_orders')->onDelete('cascade');
-            $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
-            $table->decimal('total_amount', 15, 2);
-            $table->decimal('remaining_balance', 15, 2);
-            $table->date('invoice_date');
-            $table->date('due_date');
-            // $table->enum('status', ['unpaid', 'partially_paid', 'paid', 'overdue'])->default('unpaid');
-            $table->string('status', 20)->nullable()->default('unpaid');
-            $table->timestamps();
-        });
+Schema::create('invoices', function (Blueprint $table) {
+    $table->bigIncrements('id');
+    $table->string('invoice_number', 50)->unique();
+    $table->unsignedBigInteger('order_id');
+    $table->unsignedBigInteger('customer_id');
+    $table->decimal('total_amount', 15, 2);
+    $table->decimal('remaining_balance', 15, 2);
+    $table->date('invoice_date');
+    $table->date('due_date');
+    $table->string('status', 20)->nullable();
+    $table->timestamps();
+
+    $table->foreign('order_id', 'fk_inv_so')->references('id')->on('sales_orders')->onDelete('cascade');
+    $table->foreign('customer_id', 'fk_inv_cust')->references('id')->on('customers')->onDelete('cascade');
+});
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('invoices');

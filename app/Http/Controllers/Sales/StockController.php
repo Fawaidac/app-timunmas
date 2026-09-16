@@ -15,9 +15,9 @@ class StockController extends Controller
         if ($request->filled('search')) {
             $search = strtolower($request->search);
             $query->where(function($q) use ($search) {
-                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(sku) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(category) LIKE ?', ["%{$search}%"]);
+                $q->whereRaw('LOWER("name") LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER("sku") LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER("category") LIKE ?', ["%{$search}%"]);
             });
         }
 

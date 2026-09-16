@@ -6,35 +6,33 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('payments', function (Blueprint $table) {
-            $table->id();
-            $table->string('payment_number', 50)->unique();
-            $table->foreignId('visit_id')->nullable()->constrained('sales_visits')->nullOnDelete();
-            $table->foreignId('invoice_id')->constrained('invoices')->onDelete('cascade');
-            $table->foreignId('sales_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
-            // $table->enum('payment_method', ['cash', 'transfer', 'check_giro']);
-            $table->string('payment_method', 20)->nullable();
-            $table->decimal('amount_paid', 15, 2);
-            $table->string('reference_number', 100)->nullable();
-            $table->string('proof_image_url')->nullable();
-            // $table->enum('status', ['pending_approval', 'approved', 'rejected'])->default('pending_approval');
-            $table->string('status', 20)->nullable()->default('pending_approval');
-            $table->text('rejection_reason')->nullable();
-            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('approved_at')->nullable();
-            $table->timestamps();
-        });
+Schema::create('payments', function (Blueprint $table) {
+    $table->bigIncrements('id');
+    $table->string('payment_number', 50)->unique();
+    $table->unsignedBigInteger('visit_id')->nullable();
+    $table->unsignedBigInteger('invoice_id');
+    $table->unsignedBigInteger('sales_id');
+    $table->unsignedBigInteger('customer_id');
+    $table->string('payment_method', 20)->nullable();
+    $table->decimal('amount_paid', 15, 2);
+    $table->string('reference_number', 100)->nullable();
+    $table->string('proof_image_url')->nullable();
+    $table->string('status', 20)->nullable();
+    $table->text('rejection_reason')->nullable();
+    $table->unsignedBigInteger('approved_by')->nullable();
+    $table->timestamp('approved_at')->nullable();
+    $table->timestamps();
+
+    $table->foreign('visit_id', 'fk_pay_visit')->references('id')->on('sales_visits')->nullOnDelete();
+    $table->foreign('invoice_id', 'fk_pay_inv')->references('id')->on('invoices')->onDelete('cascade');
+    $table->foreign('sales_id', 'fk_pay_user')->references('id')->on('users')->onDelete('cascade');
+    $table->foreign('customer_id', 'fk_pay_cust')->references('id')->on('customers')->onDelete('cascade');
+    $table->foreign('approved_by', 'fk_pay_appr')->references('id')->on('users')->nullOnDelete();
+});
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('payments');

@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Product extends Model
+class Product extends FirebirdModel
 {
     protected $fillable = [
         'sku', 'name', 'category', 'price', 'unit'

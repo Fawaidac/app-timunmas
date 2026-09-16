@@ -23,9 +23,7 @@ class LaporanController extends Controller
         // =========================================================================
         // 1. TOTAL REVENUE BULAN INI (Model Payment)
         // =========================================================================
-        // Menghitung sum 'amount_paid' di mana status = 'approved'
-        // dan approved_at/created_at di bulan ini
-        $totalRevenueBulanIni = (float) Payment::whereRaw('LOWER(status) = ?', ['approved'])
+        $totalRevenueBulanIni = (float) Payment::where('status', 'approved')
             ->where(function ($q) use ($currentMonth, $currentYear) {
                 $q->whereMonth('approved_at', $currentMonth)
                   ->whereYear('approved_at', $currentYear)
@@ -38,7 +36,7 @@ class LaporanController extends Controller
             ->sum('amount_paid');
 
         // Revenue Bulan Lalu
-        $revenueLastMonth = (float) Payment::whereRaw('LOWER(status) = ?', ['approved'])
+        $revenueLastMonth = (float) Payment::where('status', 'approved')
             ->where(function ($q) use ($lastMonth, $lastMonthYear) {
                 $q->whereMonth('approved_at', $lastMonth)
                   ->whereYear('approved_at', $lastMonthYear)
@@ -61,7 +59,7 @@ class LaporanController extends Controller
         // =========================================================================
         // 2. TOTAL ORDER DISETUJUI (Model SalesOrder)
         // =========================================================================
-        $totalOrderDisetujui = SalesOrder::whereRaw('LOWER(status) = ?', ['approved'])
+        $totalOrderDisetujui = SalesOrder::where('status', 'approved')
             ->where(function ($q) use ($currentMonth, $currentYear) {
                 $q->whereMonth('order_date', $currentMonth)
                   ->whereYear('order_date', $currentYear)
@@ -72,7 +70,7 @@ class LaporanController extends Controller
             })
             ->count();
 
-        $ordersLastMonth = SalesOrder::whereRaw('LOWER(status) = ?', ['approved'])
+        $ordersLastMonth = SalesOrder::where('status', 'approved')
             ->where(function ($q) use ($lastMonth, $lastMonthYear) {
                 $q->whereMonth('order_date', $lastMonth)
                   ->whereYear('order_date', $lastMonthYear)
@@ -93,7 +91,7 @@ class LaporanController extends Controller
         // =========================================================================
         // 3. AVERAGE ORDER VALUE / AOV (Model SalesOrder)
         // =========================================================================
-        $approvedOrdersQuery = SalesOrder::whereRaw('LOWER(status) = ?', ['approved']);
+        $approvedOrdersQuery = SalesOrder::where('status', 'approved');
         $approvedOrdersCount = $approvedOrdersQuery->count();
 
         if ($approvedOrdersCount > 0) {
@@ -107,7 +105,6 @@ class LaporanController extends Controller
         // =========================================================================
         // 4. KUNJUNGAN SELESAI (%) (Model SalesVisit)
         // =========================================================================
-        // Menerima status 'selesai' maupun 'completed'
         $totalVisitsThisMonth = SalesVisit::where(function ($q) use ($currentMonth, $currentYear) {
             $q->whereMonth('visit_date', $currentMonth)
               ->whereYear('visit_date', $currentYear)
@@ -117,19 +114,16 @@ class LaporanController extends Controller
               });
         })->count();
 
-        $completedVisitsThisMonth = SalesVisit::where(function ($q) {
-            $q->whereRaw('LOWER(status) = ?', ['selesai'])
-              ->orWhereRaw('LOWER(status) = ?', ['completed']);
-        })
-        ->where(function ($q) use ($currentMonth, $currentYear) {
-            $q->whereMonth('visit_date', $currentMonth)
-              ->whereYear('visit_date', $currentYear)
-              ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                  $sq->whereMonth('created_at', $currentMonth)
-                     ->whereYear('created_at', $currentYear);
-              });
-        })
-        ->count();
+        $completedVisitsThisMonth = SalesVisit::whereIn('status', ['selesai', 'completed'])
+            ->where(function ($q) use ($currentMonth, $currentYear) {
+                $q->whereMonth('visit_date', $currentMonth)
+                  ->whereYear('visit_date', $currentYear)
+                  ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
+                      $sq->whereMonth('created_at', $currentMonth)
+                         ->whereYear('created_at', $currentYear);
+                  });
+            })
+            ->count();
 
         $kunjunganSelesaiPercent = $totalVisitsThisMonth > 0
             ? round(($completedVisitsThisMonth / $totalVisitsThisMonth) * 100, 1)
@@ -145,7 +139,7 @@ class LaporanController extends Controller
             $date = Carbon::now()->subMonths($i);
             $monthlyTrendLabels[] = $date->translatedFormat('M Y');
 
-            $revenue = Payment::whereRaw('LOWER(status) = ?', ['approved'])
+            $revenue = Payment::where('status', 'approved')
                 ->where(function ($q) use ($date) {
                     $q->whereMonth('approved_at', $date->month)
                       ->whereYear('approved_at', $date->year)
@@ -167,13 +161,13 @@ class LaporanController extends Controller
             ->map(function ($sales) {
                 // 1. Hitung total pembayaran yang sudah di-approve
                 $revenue = Payment::where('sales_id', $sales->id)
-                    ->whereRaw('LOWER(status) = ?', ['approved'])
+                    ->where('status', 'approved')
                     ->sum('amount_paid');
 
                 // 2. Jika payment 0, fallback hitung total Sales Order approved
                 if ($revenue == 0) {
                     $revenue = SalesOrder::where('sales_id', $sales->id)
-                        ->whereRaw('LOWER(status) = ?', ['approved'])
+                        ->where('status', 'approved')
                         ->sum('total_amount');
                 }
 
@@ -182,8 +176,8 @@ class LaporanController extends Controller
                     'revenue' => (float) $revenue,
                 ];
             })
-            ->sortByDesc('revenue') // Urutkan dari revenue terbesar
-            ->take(5);              // 👈 Cuma ambil 5 Sales Teratas!
+            ->sortByDesc('revenue')
+            ->take(5);
 
         // Extract data untuk dikirim ke view
         $salesLabels = $topSalesData->pluck('name')->values()->toArray();

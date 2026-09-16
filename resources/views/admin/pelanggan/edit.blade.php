@@ -75,7 +75,7 @@
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                 <div>
                     <h4 style="margin:0;font-size:15px;font-weight:600;color:var(--ink);">📍 Lokasi Koordinat (Indonesia)</h4>
-                    <p style="margin:2px 0 0;font-size:12px;color:var(--muted);">Ketik alamat di pencarian, klik pada peta, atau geser marker untuk memperbarui titik lokasi customer.</p>
+                    <p style="margin:2px 0 0;font-size:12px;color:var(--muted);">Isi Lat/Long manual (copy-paste), ketik alamat di pencarian, klik pada peta, atau geser marker.</p>
                 </div>
                 <button type="button" id="btn-geolocation" class="button button-soft" style="font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;">
                     🎯 Lokasi Saya
@@ -96,13 +96,33 @@
 
             <div id="map"></div>
 
+            <!-- Input Manual Lat/Long -->
+            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:14px;margin-top:14px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <span style="font-size:16px;">✏️</span>
+                    <span style="font-size:13px;font-weight:600;color:#0369a1;">Input Manual Latitude & Longitude</span>
+                </div>
+                <p style="margin:0 0 10px;font-size:11.5px;color:#0284c7;">Copy-paste koordinat dari Google Maps atau sumber lain, lalu klik <strong>"Update Peta"</strong> untuk memperbarui lokasi di peta.</p>
+                <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 100px;gap:10px;align-items:end;">
+                    <div class="field" style="margin:0;">
+                        <label style="font-size:11.5px;color:#475569;">Latitude</label>
+                        <input type="text" id="manual-lat" class="form-control" placeholder="-6.2088" style="border-radius:8px;font-size:13px;">
+                    </div>
+                    <div class="field" style="margin:0;">
+                        <label style="font-size:11.5px;color:#475569;">Longitude</label>
+                        <input type="text" id="manual-lng" class="form-control" placeholder="106.8456" style="border-radius:8px;font-size:13px;">
+                    </div>
+                    <button type="button" id="btn-update-map" style="padding:10px 12px;background:#0284c7;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">Update Peta</button>
+                </div>
+            </div>
+
             <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;">
                 <div class="field">
-                    <label style="font-size:12px;color:var(--muted);">Latitude</label>
+                    <label style="font-size:12px;color:var(--muted);">Latitude (tersimpan)</label>
                     <input type="text" id="latitude" name="latitude" class="form-control" value="{{ old('latitude', $customer->latitude) }}" placeholder="Contoh: -6.2088" readonly style="background:#f8fafc;border-radius:10px;">
                 </div>
                 <div class="field">
-                    <label style="font-size:12px;color:var(--muted);">Longitude</label>
+                    <label style="font-size:12px;color:var(--muted);">Longitude (tersimpan)</label>
                     <input type="text" id="longitude" name="longitude" class="form-control" value="{{ old('longitude', $customer->longitude) }}" placeholder="Contoh: 106.8456" readonly style="background:#f8fafc;border-radius:10px;">
                 </div>
             </div>
@@ -181,6 +201,49 @@
                 });
             } else {
                 alert('Browser Anda tidak mendukung geolokasi.');
+            }
+        });
+
+        // Fitur Update Peta dari Input Manual Lat/Long
+        function updateMapFromManualInput() {
+            var latInput = document.getElementById('manual-lat');
+            var lngInput = document.getElementById('manual-lng');
+            var lat = parseFloat(latInput.value);
+            var lng = parseFloat(lngInput.value);
+
+            if (isNaN(lat) || isNaN(lng)) {
+                alert('Mohon masukkan Latitude dan Longitude yang valid (angka).');
+                return;
+            }
+
+            if (lat < -90 || lat > 90) {
+                alert('Latitude harus antara -90 sampai 90.');
+                return;
+            }
+
+            if (lng < -180 || lng > 180) {
+                alert('Longitude harus antara -180 sampai 180.');
+                return;
+            }
+
+            map.setView([lat, lng], 16);
+            marker.setLatLng([lat, lng]);
+            updatePosition(lat, lng);
+        }
+
+        document.getElementById('btn-update-map').addEventListener('click', updateMapFromManualInput);
+
+        // Enter key pada input manual juga trigger update
+        document.getElementById('manual-lat').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                updateMapFromManualInput();
+            }
+        });
+        document.getElementById('manual-lng').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                updateMapFromManualInput();
             }
         });
 

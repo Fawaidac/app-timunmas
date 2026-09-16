@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Customer extends Model
+class Customer extends FirebirdModel
 {
     protected $fillable = [
         'code', 'name', 'address', 'phone', 'email', 'latitude', 'longitude', 'current_debt'

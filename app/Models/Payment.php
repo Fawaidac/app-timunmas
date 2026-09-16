@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Payment extends Model
+class Payment extends FirebirdModel
 {
     protected $fillable = [
         'payment_number', 'visit_id', 'invoice_id', 'sales_id', 'customer_id',

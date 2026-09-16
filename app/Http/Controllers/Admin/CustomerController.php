@@ -17,11 +17,11 @@ public function index(Request $request)
         if ($request->filled('search')) {
             $search = strtolower($request->search);
             $query->where(function($q) use ($search) {
-                $q->whereRaw('LOWER(code) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(address) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(phone) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
+                $q->whereRaw('LOWER("code") LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER("name") LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER("address") LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER("phone") LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER("email") LIKE ?', ["%{$search}%"]);
             });
         }
 

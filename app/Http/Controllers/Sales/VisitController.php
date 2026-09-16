@@ -127,11 +127,15 @@ class VisitController extends Controller
              return back()->with('error', 'Lokasi Anda terlalu jauh dari customer (' . round($distance) . ' meter). Jarak maksimal adalah 100 meter.');
         }
 
+        // Bulatkan koordinat untuk menghindari masalah presisi di Firebird
+        $checkinLat = round($request->checkin_latitude, 8);
+        $checkinLng = round($request->checkin_longitude, 8);
+
         $visit->update([
             'checkin_time'      => now(),
-            'checkin_latitude'  => $request->checkin_latitude,
-            'checkin_longitude' => $request->checkin_longitude,
-            'distance_meters'   => $distance,
+            'checkin_latitude'  => $checkinLat,
+            'checkin_longitude' => $checkinLng,
+            'distance_meters'   => $distance !== null ? round($distance, 2) : null,
             'status'            => 'in_progress',
         ]);
 

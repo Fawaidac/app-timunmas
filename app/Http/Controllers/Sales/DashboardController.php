@@ -49,7 +49,7 @@ class DashboardController extends Controller
                   ->where('status', '!=', 'cancelled');
             })
             ->where('status', '!=', 'paid')
-            ->where('due_date', '<=', $today)
+            ->whereDate('due_date', '<=', $today)
             ->get();
         
         $jumlahTagihanJatuhTempo = $tagihanJatuhTempo->count();
