@@ -193,7 +193,7 @@
             <article class="card" style="margin-bottom:20px;">
                 <h3 style="margin:0 0 16px;font-size:16px;color:var(--primary);">⚡ Aksi Diperlukan</h3>
                 
-                <form action="{{ route('admin.pembayaran.approve', $payment->id) }}" method="POST" onsubmit="return confirm('Yakin approve pembayaran ini?')">
+                <form action="{{ route('admin.pembayaran.approve', $payment->id) }}" method="POST" onsubmit="return confirmAction(event, this, 'Approve Pembayaran', 'Pembayaran ini akan disetujui.', '#16a34a')">
                     @csrf
                     <button type="submit" class="button" style="width:100%;background:#10b981;border-color:#10b981;margin-bottom:12px;">
                         ✓ Approve Pembayaran

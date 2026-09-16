@@ -129,7 +129,7 @@
                             <div style="display:flex;gap:6px;">
                                 <a href="{{ route('admin.customers.show', $customer->id) }}" class="button button-soft" style="padding:6px 10px;font-size:11px;">Detail</a>
                                 <a href="{{ route('admin.customers.edit', $customer->id) }}" class="button button-soft" style="padding:6px 10px;font-size:11px;">Edit</a>
-                                <form action="{{ route('admin.customers.destroy', $customer->id) }}" method="POST" onsubmit="return confirm('Yakin hapus customer ini?');">
+                                <form action="{{ route('admin.customers.destroy', $customer->id) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Customer', 'Customer ini akan dihapus permanen.');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" style="padding:6px 10px;font-size:11px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;cursor:pointer;">Hapus</button>

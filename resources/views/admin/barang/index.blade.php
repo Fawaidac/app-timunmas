@@ -134,7 +134,7 @@
             <div style="display:flex;gap:6px;">
                 <a href="{{ route('admin.products.show', $product->id) }}" class="button button-soft" style="flex:1;padding:7px;font-size:11px;text-align:center;">Detail</a>
                 <a href="{{ route('admin.products.edit', $product->id) }}" class="button button-soft" style="flex:1;padding:7px;font-size:11px;text-align:center;">Edit</a>
-                <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Yakin hapus barang ini?');" style="flex:1;">
+                <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Barang', 'Barang ini akan dihapus permanen.');" style="flex:1;">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="button" style="width:100%;padding:7px;font-size:11px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;cursor:pointer;">Hapus</button>

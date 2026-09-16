@@ -28,7 +28,7 @@
     </div>
     <div style="display:flex;gap:8px;">
         <a href="{{ route('admin.customers.edit', $customer->id) }}" class="button button-soft">✏ Edit</a>
-        <form action="{{ route('admin.customers.destroy', $customer->id) }}" method="POST" onsubmit="return confirm('Yakin hapus customer ini?');">
+        <form action="{{ route('admin.customers.destroy', $customer->id) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Customer', 'Customer ini akan dihapus permanen.');">
             @csrf
             @method('DELETE')
             <button type="submit" class="button" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;padding:8px 16px;cursor:pointer;">🗑 Hapus</button>

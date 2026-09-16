@@ -140,7 +140,7 @@
                                 <a href="{{ route('admin.users.show', $user->id) }}" class="button button-soft" style="padding:6px 10px;font-size:11px;">Detail</a>
                                 <a href="{{ route('admin.users.edit', $user->id) }}" class="button button-soft" style="padding:6px 10px;font-size:11px;">Edit</a>
                                 @if($user->id !== auth()->id())
-                                    <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Yakin hapus pengguna ini?');">
+                                    <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Pengguna', 'Pengguna ini akan dihapus permanen.');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" style="padding:6px 10px;font-size:11px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;cursor:pointer;">Hapus</button>

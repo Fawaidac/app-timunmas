@@ -121,7 +121,7 @@
         </div>
     @endif
 
-    <form action="{{ route('sales.order.store') }}" method="POST" id="orderForm">
+    <form action="{{ route('sales.order.store') }}" method="POST" id="orderForm" onsubmit="return submitOrderForm(this);">
         @csrf
         <input type="hidden" name="visit_id" value="{{ $selectedVisitId ?? '' }}">
         <input type="hidden" name="customer_id" value="{{ $selectedCustomerId ?? '' }}">
@@ -225,7 +225,7 @@
         <!-- Tombol Aksi -->
         <div class="button-row" style="margin-top: 24px; display: flex; gap: 12px;">
             <a href="{{ route('sales.kunjungan.index') }}" class="button button-soft" style="flex: 2; text-align: center; display: flex; align-items: center; justify-content: center; border-radius: 8px; text-decoration: none;">Batal</a>
-            <button type="submit" class="button button-primary" style="flex: 2; border-radius: 8px; padding: 12px; font-weight: 600;">Simpan Sales Order</button>
+            <button type="submit" class="button button-primary" id="submitBtn" style="flex: 2; border-radius: 8px; padding: 12px; font-weight: 600;">Simpan Sales Order</button>
         </div>
     </form>
 </article>
@@ -318,7 +318,7 @@ function removeRow(btn) {
         row.remove();
         calculate();
     } else {
-        alert('Minimal harus ada 1 item produk.');
+        Swal.fire({ icon: 'warning', title: 'Minimal harus ada 1 item produk.' });
     }
 }
 
@@ -354,14 +354,14 @@ function validateQty(input) {
     let currentQty = parseFloat(input.value) || 0;
 
     if (maxStock <= 0) {
-        alert(`Stok produk "${option.text.split('-')[0].trim()}" sedang KOSONG (0)!`);
+        Swal.fire({ icon: 'warning', title: 'Stok Kosong', text: `Stok produk "${option.text.split('-')[0].trim()}" sedang KOSONG (0)!` });
         input.value = 0;
         calculate();
         return;
     }
 
     if (currentQty > maxStock) {
-        alert(`Jumlah melebihi stok yang tersedia! Maksimal stok hanya ${maxStock}.`);
+        Swal.fire({ icon: 'warning', title: 'Stok Tidak Cukup', text: `Jumlah melebihi stok yang tersedia! Maksimal stok hanya ${maxStock}.` });
         input.value = maxStock;
     }
 
@@ -382,6 +382,21 @@ function calculate() {
         grandTotal += subtotal;
     });
     document.getElementById('totalDisplay').value = 'Rp ' + formatNumber(grandTotal);
+}
+
+// Proteksi double-submit: disable tombol & tandai form saat dikirim
+function submitOrderForm(form) {
+    if (form.dataset.submitted === '1') {
+        return false;
+    }
+    form.dataset.submitted = '1';
+    const btn = document.getElementById('submitBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Menyimpan...';
+        btn.style.opacity = '0.7';
+    }
+    return true;
 }
 
 function formatNumber(num) {

@@ -21,7 +21,7 @@
         </div>
     @endif
 
-    <form action="{{ route('sales.order.store') }}" method="POST" id="orderForm">
+    <form action="{{ route('sales.order.store') }}" method="POST" id="orderForm" onsubmit="return submitOrderForm(this);">
         @csrf
         <input type="hidden" name="visit_id" value="{{ $visit->id }}">
         <input type="hidden" name="customer_id" value="{{ $visit->customer_id }}">
@@ -102,7 +102,7 @@
 
         <div class="button-row" style="margin-top:24px;display:flex;gap:12px;">
             <a href="{{ route('sales.kunjungan.show', $visit->id) }}" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
-            <button type="submit" class="button button-primary" style="flex:2;">Simpan Sales Order</button>
+            <button type="submit" class="button button-primary" id="submitBtn" style="flex:2;">Simpan Sales Order</button>
         </div>
     </form>
 </article>
@@ -164,8 +164,23 @@ function removeRow(btn) {
         btn.closest('tr').remove();
         calculate();
     } else {
-        alert('Minimal harus ada 1 item produk.');
+        Swal.fire({ icon: 'warning', title: 'Minimal harus ada 1 item produk.' });
     }
+}
+
+// Proteksi double-submit: disable tombol & tandai form saat dikirim
+function submitOrderForm(form) {
+    if (form.dataset.submitted === '1') {
+        return false;
+    }
+    form.dataset.submitted = '1';
+    const btn = document.getElementById('submitBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Menyimpan...';
+        btn.style.opacity = '0.7';
+    }
+    return true;
 }
 
 // Initial calculation

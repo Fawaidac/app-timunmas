@@ -24,6 +24,12 @@
     </div>
 @endif
 
+@if(session('warning'))
+    <div style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;padding:12px 16px;border-radius:10px;margin-bottom:16px;">
+        ⚠ {{ session('warning') }}
+    </div>
+@endif
+
 <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;">
     <article class="card">
         <h4 style="margin:0 0 16px;font-size:15px;font-weight:600;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">Informasi Order</h4>

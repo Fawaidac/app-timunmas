@@ -26,6 +26,10 @@
 </div>
 
 <div class="sidebar-backdrop" data-sidebar-close></div>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    @include('partials/sweetalert-confirm')
+
 @stack('scripts')
 </body>
 </html>

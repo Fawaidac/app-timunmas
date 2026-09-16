@@ -41,6 +41,25 @@ class OrderController extends Controller
 
     public function store(StoreOrderRequest $request)
     {
+        // Proteksi duplikat: tolak jika ada order identik (sales, customer,
+        // tanggal, total) yang dibuat kurang dari 2 menit lalu (double-submit).
+        $total = 0;
+        foreach ($request->product_id as $i => $pid) {
+            $total += $request->quantity[$i] * $request->price[$i];
+        }
+
+        $duplicate = SalesOrder::where('sales_id', auth()->id())
+            ->where('customer_id', $request->customer_id)
+            ->where('total_amount', $total)
+            ->where('created_at', '>=', now()->subMinutes(2))
+            ->first();
+
+        if ($duplicate) {
+            return redirect()
+                ->route($request->visit_id ? 'sales.kunjungan.show' : 'sales.order.show', $request->visit_id ?? $duplicate->id)
+                ->with('warning', 'Order terdeteksi duplikat dan tidak disimpan ulang. Nomor order sebelumnya: ' . $duplicate->order_number);
+        }
+
         $order = DB::transaction(function () use ($request) {
             // Generate nomor order
             $orderNumber = $this->generateOrderNumber();
@@ -110,7 +129,9 @@ class OrderController extends Controller
             // Auto-create invoice
             $invoiceNumber = $this->generateInvoiceNumber();
             $termDays = (int) ($order->payment_term_days ?: 7);
-            $dueDate = \Carbon\Carbon::parse($order->order_date)->addDays($termDays);
+            // Gunakan nilai asli dari request, bukan $order->order_date,
+            // karena atribut model sudah dikonversi menjadi Query\Expression (CAST) oleh FirebirdModel.
+            $dueDate = \Carbon\Carbon::parse($request->order_date)->addDays($termDays);
 
             Invoice::create([
                 'invoice_number'    => $invoiceNumber,

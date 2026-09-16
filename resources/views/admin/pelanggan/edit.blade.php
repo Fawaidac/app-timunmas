@@ -194,13 +194,13 @@
                     btn.disabled = false;
                     btn.innerHTML = '🎯 Lokasi Saya';
                 }, function (error) {
-                    alert('Gagal mengambil lokasi: ' + error.message);
+                    Swal.fire({ icon: 'error', title: 'Gagal Mengambil Lokasi', text: error.message });
                     var btn = document.getElementById('btn-geolocation');
                     btn.disabled = false;
                     btn.innerHTML = '🎯 Lokasi Saya';
                 });
             } else {
-                alert('Browser Anda tidak mendukung geolokasi.');
+                Swal.fire({ icon: 'warning', title: 'Tidak Didukung', text: 'Browser Anda tidak mendukung geolokasi.' });
             }
         });
 
@@ -212,17 +212,17 @@
             var lng = parseFloat(lngInput.value);
 
             if (isNaN(lat) || isNaN(lng)) {
-                alert('Mohon masukkan Latitude dan Longitude yang valid (angka).');
+                Swal.fire({ icon: 'warning', title: 'Input Tidak Valid', text: 'Mohon masukkan Latitude dan Longitude yang valid (angka).' });
                 return;
             }
 
             if (lat < -90 || lat > 90) {
-                alert('Latitude harus antara -90 sampai 90.');
+                Swal.fire({ icon: 'warning', title: 'Latitude Tidak Valid', text: 'Latitude harus antara -90 sampai 90.' });
                 return;
             }
 
             if (lng < -180 || lng > 180) {
-                alert('Longitude harus antara -180 sampai 180.');
+                Swal.fire({ icon: 'warning', title: 'Longitude Tidak Valid', text: 'Longitude harus antara -180 sampai 180.' });
                 return;
             }
 

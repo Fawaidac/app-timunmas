@@ -12,7 +12,7 @@
     </div>
     <div style="display:flex;gap:8px;">
         <a href="{{ route('sales.kunjungan.edit', $visit->id) }}" class="button button-soft">✏️ Edit</a>
-        <form action="{{ route('sales.kunjungan.destroy', $visit->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Yakin ingin menghapus kunjungan ini?');">
+        <form action="{{ route('sales.kunjungan.destroy', $visit->id) }}" method="POST" style="display:inline;" onsubmit="return confirmAction(event, this, 'Hapus Kunjungan', 'Kunjungan ini akan dihapus permanen.');">
             @csrf
             @method('DELETE')
             <button type="submit" class="button button-soft" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;">🗑️ Hapus</button>
@@ -30,6 +30,12 @@
 @if(session('error'))
     <div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px 16px;border-radius:10px;margin-bottom:16px;">
         ✖ {{ session('error') }}
+    </div>
+@endif
+
+@if(session('warning'))
+    <div style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;padding:12px 16px;border-radius:10px;margin-bottom:16px;">
+        ⚠ {{ session('warning') }}
     </div>
 @endif
 

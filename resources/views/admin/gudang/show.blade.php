@@ -12,7 +12,7 @@
     </div>
     <div style="display:flex;gap:8px;">
         <a href="{{ route('admin.warehouses.edit', $warehouse->id) }}" class="button button-soft">✏ Edit</a>
-        <form action="{{ route('admin.warehouses.destroy', $warehouse->id) }}" method="POST" onsubmit="return confirm('Yakin hapus gudang ini?');">
+        <form action="{{ route('admin.warehouses.destroy', $warehouse->id) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Gudang', 'Gudang ini akan dihapus permanen.');">
             @csrf
             @method('DELETE')
             <button type="submit" class="button" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;padding:8px 16px;cursor:pointer;">🗑 Hapus</button>

@@ -246,7 +246,7 @@ function getGPS() {
                 coordinatesDisplay.querySelector('p').textContent = 'Pastikan Anda mengizinkan akses lokasi di browser.';
                 coordinatesDisplay.querySelector('p').style.color = '#991b1b';
                 
-                alert('Browser tidak bisa mengakses GPS. Pastikan Anda mengizinkan akses lokasi.');
+                Swal.fire({ icon: 'error', title: 'GPS Error', text: 'Browser tidak bisa mengakses GPS. Pastikan Anda mengizinkan akses lokasi.' });
             },
             {
                 enableHighAccuracy: true,

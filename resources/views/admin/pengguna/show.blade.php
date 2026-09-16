@@ -13,7 +13,7 @@
     <div style="display:flex;gap:8px;">
         <a href="{{ route('admin.users.edit', $user->id) }}" class="button button-soft">✏ Edit</a>
         @if($user->id !== auth()->id())
-            <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Yakin hapus pengguna ini?');">
+            <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Pengguna', 'Pengguna ini akan dihapus permanen.');">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="button" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;padding:8px 16px;cursor:pointer;">🗑 Hapus</button>
