@@ -14,11 +14,28 @@ class StoreCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code'      => 'required|string|max:50|unique:customers,code',
-            'name'      => 'required|string|max:150',
-            'address'   => 'nullable|string',
-            'phone'     => 'nullable|string|max:20',
-            'email'     => 'nullable|email|max:100',
+            'kd_cust'   => 'nullable|string|max:9|unique:CUSTOMER,KD_CUST',
+            'nm_cust'   => 'required|string|max:50',
+            'c_person'  => 'nullable|string|max:20',
+            'alm_cust'  => 'nullable|string|max:65',
+            'telp1'     => 'nullable|string|max:14',
+            'telp2'     => 'nullable|string|max:14',
+            'hp'        => 'nullable|string|max:14',
+            'fax'       => 'nullable|string|max:14',
+            'e_mail'    => 'nullable|email|max:50',
+            'web_site'  => 'nullable|string|max:50',
+            'kd_kat'    => 'nullable|string|max:2',
+            'kd_wil'    => 'nullable|string|max:3',
+            'kd_peg'    => 'nullable|string|max:9',
+            'krd_limit' => 'nullable|numeric|min:0',
+            'top_limit' => 'nullable|integer|min:0|max:999',
+            'npwp'      => 'nullable|string|max:27',
+            'nm_pkp'    => 'nullable|string|max:65',
+            'alm_pkp'   => 'nullable|string|max:65',
+            'bank1'     => 'nullable|string|max:50',
+            'no_rek1'   => 'nullable|string|max:14',
+            'bank2'     => 'nullable|string|max:50',
+            'no_rek2'   => 'nullable|string|max:14',
             'latitude'  => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
         ];
@@ -27,10 +44,12 @@ class StoreCustomerRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'code.required'  => 'Kode customer wajib diisi.',
-            'code.unique'    => 'Kode customer sudah dipakai.',
-            'name.required'  => 'Nama customer wajib diisi.',
-            'email.email'    => 'Format email tidak valid.',
+            'kd_cust.unique'    => 'Kode customer sudah digunakan.',
+            'nm_cust.required'  => 'Nama customer wajib diisi.',
+            'nm_cust.max'       => 'Nama customer maksimal 50 karakter.',
+            'e_mail.email'      => 'Format email tidak valid.',
+            'latitude.between'  => 'Nilai latitude harus di antara -90 dan 90.',
+            'longitude.between' => 'Nilai longitude harus di antara -180 dan 180.',
         ];
     }
 }

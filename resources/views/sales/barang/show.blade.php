@@ -88,14 +88,14 @@
             <div style="width:40px;height:40px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">📅</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Ditambahkan</div>
-                <div style="font-size:13px;font-weight:600;">{{ $product->created_at->format('d M Y') }}</div>
+                <div style="font-size:13px;font-weight:600;">{{ $product->created_at ? \Carbon\Carbon::parse($product->created_at)->format('d M Y') : '-' }}</div>
             </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:40px;height:40px;background:#fdf4ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">🔄</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Terakhir diupdate</div>
-                <div style="font-size:13px;font-weight:600;">{{ $product->updated_at->format('d M Y') }}</div>
+                <div style="font-size:13px;font-weight:600;">{{ $product->updated_at ? \Carbon\Carbon::parse($product->updated_at)->format('d M Y') : '-' }}</div>
             </div>
         </div>
     </article>

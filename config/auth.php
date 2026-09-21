@@ -37,8 +37,13 @@ return [
 
     'guards' => [
         'web' => [
-            'driver' => 'session',
+            'driver'   => 'session',
             'provider' => 'users',
+        ],
+        // Guard khusus untuk login sales dari tabel PEGAWAI
+        'sales' => [
+            'driver'   => 'session',
+            'provider' => 'pegawai',
         ],
     ],
 
@@ -60,15 +65,16 @@ return [
     */
 
     'providers' => [
+        // Admin dari MST_PENGGUNA
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model'  => env('AUTH_MODEL', App\Models\User::class),
         ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        // Sales dari PEGAWAI
+        'pegawai' => [
+            'driver' => 'eloquent',
+            'model'  => App\Models\Pegawai::class,
+        ],
     ],
 
     /*

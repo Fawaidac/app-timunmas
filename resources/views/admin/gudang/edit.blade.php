@@ -21,34 +21,23 @@
         </div>
     @endif
 
-    <form action="{{ route('admin.warehouses.update', $warehouse->id) }}" method="POST">
+    <form action="{{ route('admin.warehouses.update', $warehouse->NM_GUDANG) }}" method="POST">
         @csrf
         @method('PUT')
 
         <div class="field">
-            <label style="font-size:12px;color:var(--muted);font-weight:500;">Kode Gudang (tidak bisa diubah)</label>
-            <input type="text" class="form-control" value="{{ $warehouse->code }}" readonly style="background:#f9fafb;">
+            <label>Nama / Kode Gudang <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="name" class="form-control" value="{{ old('name', $warehouse->NM_GUDANG) }}" required maxlength="50">
+            <small style="color:var(--muted);font-size:12px;display:block;margin-top:4px;">Nama unik gudang di database.</small>
         </div>
 
         <div class="field">
-            <label>Nama Gudang <span style="color:#ef4444;">*</span></label>
-            <input type="text" name="name" class="form-control" value="{{ old('name', $warehouse->name) }}" required maxlength="100">
-        </div>
-
-        <div class="field">
-            <label>Alamat Gudang</label>
-            <textarea name="address" class="form-control" rows="3">{{ old('address', $warehouse->address) }}</textarea>
-        </div>
-
-        <div class="field">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" name="is_active" value="1" {{ old('is_active', $warehouse->is_active) ? 'checked' : '' }} style="width:16px;height:16px;">
-                <span>Gudang Aktif</span>
-            </label>
+            <label>Alamat / Keterangan Gudang</label>
+            <textarea name="address" class="form-control" rows="3" placeholder="Alamat atau keterangan lokasi gudang">{{ old('address', $warehouse->KET) }}</textarea>
         </div>
 
         <div class="button-row" style="margin-top:24px;display:flex;gap:12px;">
-            <a href="{{ route('admin.warehouses.show', $warehouse->id) }}" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
+            <a href="{{ route('admin.warehouses.show', $warehouse->NM_GUDANG) }}" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
             <button type="submit" class="button button-primary" style="flex:2;">Simpan Perubahan</button>
         </div>
     </form>

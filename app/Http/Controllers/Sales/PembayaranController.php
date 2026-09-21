@@ -9,75 +9,72 @@ use App\Models\Invoice;
 use App\Models\SalesOrder;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Titip pembayaran (web) -> tabel PAYMENT (baru), status pending_approval.
+ * Route /pembayaran/{orderId}: orderId = NO_ENT order (MST_ORD_JUAL);
+ * faktur terkait dicari lewat MST_ORD_JUAL.NO_ENT_JUAL.
+ */
 class PembayaranController extends Controller
 {
     public function index($orderId)
     {
-        $order = SalesOrder::with(['customer', 'invoice'])
-            ->where('sales_id', auth()->id())
-            ->findOrFail($orderId);
+        $order = SalesOrder::with('customer')
+            ->where('KD_PEG', auth()->user()->KD_PEG)
+            ->where('NO_ENT', $orderId)
+            ->firstOrFail();
 
-        if (!$order->invoice) {
-            return redirect()->route('sales.order.show', $orderId)
-                ->with('error', 'Order ini belum memiliki invoice.');
-        }
+        $noFaktur = $order->NO_ENT_JUAL;
+        $invoice = $noFaktur ? Invoice::where('NO_ENT', $noFaktur)->first() : null;
 
-        return view('sales.pembayaran.index', compact('order'));
+        return view('sales.pembayaran.index', compact('order', 'invoice'));
     }
 
     public function store(StorePaymentRequest $request)
     {
         $payment = DB::transaction(function () use ($request) {
-            $invoice = Invoice::with('order')->findOrFail($request->invoice_id);
+            $invoice = Invoice::where('NO_ENT', $request->invoice_id)->firstOrFail();
 
-            // Generate payment number
-            $paymentNumber = $this->generatePaymentNumber();
+            $noBukti = $this->generatePaymentNumber();
+            $foto = null;
 
-            // Handle proof image upload
-            $proofImageUrl = null;
             if ($request->hasFile('proof_image')) {
                 $file = $request->file('proof_image');
                 $filename = 'payment_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                 $file->storeAs('payment_proofs', $filename, 'public');
-                $proofImageUrl = 'payment_proofs/' . $filename;
+                $foto = 'payment_proofs/' . $filename;
             }
 
-            // Create payment
-            $payment = Payment::create([
-                'payment_number' => $paymentNumber,
-                'invoice_id' => $invoice->id,
-                'visit_id' => $invoice->order->visit_id ?? null,
-                'sales_id' => auth()->id(),
-                'customer_id' => $invoice->customer_id,
-                'payment_method' => $request->payment_method,
-                'amount_paid' => $request->amount_paid,
-                'reference_number' => $request->reference_number,
-                'proof_image_url' => $proofImageUrl,
-                'status' => 'pending_approval',
+            Payment::create([
+                'NO_BUKTI' => $noBukti,
+                'NO_ENT'   => $invoice->NO_ENT,
+                'KD_CUST'  => $invoice->KD_CUST,
+                'KD_PEG'   => auth()->user()->KD_PEG,
+                'TANGGAL'  => now()->format('Y-m-d H:i:s'),
+                'METODE'   => $request->payment_method,
+                'JUMLAH'   => (float) $request->amount_paid,
+                'NO_REF'   => $request->reference_number,
+                'FOTO'     => $foto,
+                'STATUS'   => 'pending_approval',
+                'CATATAN'  => $request->notes,
             ]);
 
-            return $payment;
+            return $noBukti;
         });
 
-        return redirect()->route('sales.order.show', $payment->invoice->order_id)
-            ->with('success', 'Pembayaran berhasil dititipkan dan menunggu approval. Nomor: ' . $payment->payment_number);
+        return redirect()->route('sales.tagihan.index')
+            ->with('success', 'Pembayaran berhasil dititipkan dan menunggu approval. Nomor: ' . $payment);
     }
 
-    private function generatePaymentNumber()
+    private function generatePaymentNumber(): string
     {
-        $prefix = 'PAY';
-        $date = date('Ymd');
-        $latest = Payment::where('payment_number', 'like', $prefix . $date . '%')
-            ->orderBy('payment_number', 'desc')
-            ->first();
+        $prefix = 'PAY' . date('Ymd');
+        $last = (string) (Payment::query()
+            ->where('NO_BUKTI', 'like', $prefix . '%')
+            ->orderBy('NO_BUKTI', 'desc')
+            ->value('NO_BUKTI') ?? '');
 
-        if ($latest) {
-            $lastNumber = (int) substr($latest->payment_number, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '0001';
-        }
+        $urut = ((int) substr($last, -4) ?: 0) + 1;
 
-        return $prefix . $date . $newNumber;
+        return $prefix . str_pad((string) $urut, 4, '0', STR_PAD_LEFT);
     }
 }

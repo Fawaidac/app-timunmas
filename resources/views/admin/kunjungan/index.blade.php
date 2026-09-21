@@ -10,6 +10,26 @@
     <p>Pantau rute dan aktivitas kunjungan lapangan seluruh tim sales</p>
 </div>
 
+@if(session('success'))
+    <div style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;padding:12px 16px;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+        <span>✔</span> {{ session('success') }}
+    </div>
+@endif
+@if(session('error'))
+    <div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px 16px;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+        <span>✖</span> {{ session('error') }}
+    </div>
+@endif
+
+<div class="toolbar">
+    <form action="{{ route('admin.visits') }}" method="GET" style="flex: 1; max-width: 400px;">
+        <label class="search-box" style="width: 100%;">
+            <span>⌕</span>
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama sales atau customer..." onchange="this.form.submit()">
+        </label>
+    </form>
+</div>
+
 <div class="visit-grid">
     @forelse($visits as $visit)
         <article class="visit-card">
@@ -43,4 +63,6 @@
         </div>
     @endforelse
 </div>
+
+@include('partials.pagination', ['paginator' => $visits, 'itemLabel' => 'kunjungan'])
 @endsection

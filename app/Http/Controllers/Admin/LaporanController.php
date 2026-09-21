@@ -4,51 +4,38 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
-use App\Models\SalesOrder;
 use App\Models\SalesVisit;
-use App\Models\User;
+use App\Models\Pegawai;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Laporan admin — sumber: PAYMENT (web), MST_ORD_JUAL, KUNJUNGAN (web),
+ * REKAP_OMZET_EFF_CALL (legacy).
+ */
 class LaporanController extends Controller
 {
     public function index()
     {
-        $currentMonth = now()->month;
-        $currentYear = now()->year;
+        $m = (int) now()->month;
+        $y = (int) now()->year;
 
-        $lastMonthDate = now()->subMonth();
-        $lastMonth = $lastMonthDate->month;
-        $lastMonthYear = $lastMonthDate->year;
+        // 1. Revenue bulan ini & lalu (PAYMENT web)
+        $totalRevenueBulanIni = (float) DB::selectOne("
+            SELECT COALESCE(SUM(JUMLAH), 0) AS TOTAL FROM PAYMENT
+            WHERE STATUS = 'approved'
+              AND EXTRACT(MONTH FROM COALESCE(TGL_APPROVE, TANGGAL)) = {$m}
+              AND EXTRACT(YEAR FROM COALESCE(TGL_APPROVE, TANGGAL)) = {$y}
+        ")->TOTAL;
 
-        // =========================================================================
-        // 1. TOTAL REVENUE BULAN INI (Model Payment)
-        // =========================================================================
-        $totalRevenueBulanIni = (float) Payment::where('status', 'approved')
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereMonth('approved_at', $currentMonth)
-                  ->whereYear('approved_at', $currentYear)
-                  ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                      $sq->whereNull('approved_at')
-                         ->whereMonth('created_at', $currentMonth)
-                         ->whereYear('created_at', $currentYear);
-                  });
-            })
-            ->sum('amount_paid');
+        $lm = now()->subMonth();
+        $revenueLastMonth = (float) DB::selectOne("
+            SELECT COALESCE(SUM(JUMLAH), 0) AS TOTAL FROM PAYMENT
+            WHERE STATUS = 'approved'
+              AND EXTRACT(MONTH FROM COALESCE(TGL_APPROVE, TANGGAL)) = " . (int) $lm->month . "
+              AND EXTRACT(YEAR FROM COALESCE(TGL_APPROVE, TANGGAL)) = " . (int) $lm->year . "
+        ")->TOTAL;
 
-        // Revenue Bulan Lalu
-        $revenueLastMonth = (float) Payment::where('status', 'approved')
-            ->where(function ($q) use ($lastMonth, $lastMonthYear) {
-                $q->whereMonth('approved_at', $lastMonth)
-                  ->whereYear('approved_at', $lastMonthYear)
-                  ->orWhere(function ($sq) use ($lastMonth, $lastMonthYear) {
-                      $sq->whereNull('approved_at')
-                         ->whereMonth('created_at', $lastMonth)
-                         ->whereYear('created_at', $lastMonthYear);
-                  });
-            })
-            ->sum('amount_paid');
-
-        // Indikator Pertumbuhan Revenue
         if ($revenueLastMonth > 0) {
             $diff = (($totalRevenueBulanIni - $revenueLastMonth) / $revenueLastMonth) * 100;
             $revenueGrowthHint = ($diff >= 0 ? '↑ ' : '↓ ') . abs(round($diff, 1)) . '% vs bln lalu';
@@ -56,136 +43,77 @@ class LaporanController extends Controller
             $revenueGrowthHint = 'Bulan berjalan';
         }
 
-        // =========================================================================
-        // 2. TOTAL ORDER DISETUJUI (Model SalesOrder)
-        // =========================================================================
-        $totalOrderDisetujui = SalesOrder::where('status', 'approved')
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereMonth('order_date', $currentMonth)
-                  ->whereYear('order_date', $currentYear)
-                  ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                      $sq->whereMonth('created_at', $currentMonth)
-                         ->whereYear('created_at', $currentYear);
-                  });
-            })
-            ->count();
+        // 2. Order bulan ini (MST_ORD_JUAL)
+        $orderAgg = DB::selectOne("
+            SELECT COUNT(*) AS JML, COALESCE(SUM(TOTAL), 0) AS TOTAL
+            FROM MST_ORD_JUAL
+            WHERE ST_JADI <> 'BATAL'
+              AND EXTRACT(MONTH FROM TANGGAL) = {$m}
+              AND EXTRACT(YEAR FROM TANGGAL) = {$y}
+        ");
+        $totalOrderDisetujui = (int) $orderAgg->JML;
+        $orderAmount = (float) $orderAgg->TOTAL;
 
-        $ordersLastMonth = SalesOrder::where('status', 'approved')
-            ->where(function ($q) use ($lastMonth, $lastMonthYear) {
-                $q->whereMonth('order_date', $lastMonth)
-                  ->whereYear('order_date', $lastMonthYear)
-                  ->orWhere(function ($sq) use ($lastMonth, $lastMonthYear) {
-                      $sq->whereMonth('created_at', $lastMonth)
-                         ->whereYear('created_at', $lastMonthYear);
-                  });
-            })
-            ->count();
+        $orderAggLast = (int) DB::selectOne("
+            SELECT COUNT(*) AS JML FROM MST_ORD_JUAL
+            WHERE ST_JADI <> 'BATAL'
+              AND EXTRACT(MONTH FROM TANGGAL) = " . (int) $lm->month . "
+              AND EXTRACT(YEAR FROM TANGGAL) = " . (int) $lm->year . "
+        ")->JML;
 
-        if ($ordersLastMonth > 0) {
-            $diffOrder = (($totalOrderDisetujui - $ordersLastMonth) / $ordersLastMonth) * 100;
-            $orderHint = ($diffOrder >= 0 ? '↑ ' : '↓ ') . abs(round($diffOrder, 1)) . '% vs bln lalu';
-        } else {
-            $orderHint = 'Bulan berjalan';
-        }
+        $orderHint = $orderAggLast > 0
+            ? (($totalOrderDisetujui >= $orderAggLast ? '↑ ' : '↓ ') . abs($totalOrderDisetujui - $orderAggLast) . ' order vs bln lalu')
+            : 'Bulan berjalan';
 
-        // =========================================================================
-        // 3. AVERAGE ORDER VALUE / AOV (Model SalesOrder)
-        // =========================================================================
-        $approvedOrdersQuery = SalesOrder::where('status', 'approved');
-        $approvedOrdersCount = $approvedOrdersQuery->count();
+        $aov = $totalOrderDisetujui > 0 ? $orderAmount / $totalOrderDisetujui : 0;
+        $aovGrowthHint = 'AOV bulan ini';
 
-        if ($approvedOrdersCount > 0) {
-            $aov = (float) ($approvedOrdersQuery->sum('total_amount') / $approvedOrdersCount);
-        } else {
-            $aov = 0.0;
-        }
+        // 3. Kunjungan selesai bulan ini (KUNJUNGAN web)
+        $totalVisitsThisMonth = (int) DB::selectOne("
+            SELECT COUNT(*) AS JML FROM KUNJUNGAN
+            WHERE EXTRACT(MONTH FROM TANGGAL) = {$m} AND EXTRACT(YEAR FROM TANGGAL) = {$y}
+        ")->JML;
 
-        $aovGrowthHint = 'Per transaksi';
-
-        // =========================================================================
-        // 4. KUNJUNGAN SELESAI (%) (Model SalesVisit)
-        // =========================================================================
-        $totalVisitsThisMonth = SalesVisit::where(function ($q) use ($currentMonth, $currentYear) {
-            $q->whereMonth('visit_date', $currentMonth)
-              ->whereYear('visit_date', $currentYear)
-              ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                  $sq->whereMonth('created_at', $currentMonth)
-                     ->whereYear('created_at', $currentYear);
-              });
-        })->count();
-
-        $completedVisitsThisMonth = SalesVisit::whereIn('status', ['selesai', 'completed'])
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereMonth('visit_date', $currentMonth)
-                  ->whereYear('visit_date', $currentYear)
-                  ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                      $sq->whereMonth('created_at', $currentMonth)
-                         ->whereYear('created_at', $currentYear);
-                  });
-            })
-            ->count();
+        $completedVisitsThisMonth = (int) DB::selectOne("
+            SELECT COUNT(*) AS JML FROM KUNJUNGAN
+            WHERE STATUS = 'completed'
+              AND EXTRACT(MONTH FROM TANGGAL) = {$m} AND EXTRACT(YEAR FROM TANGGAL) = {$y}
+        ")->JML;
 
         $kunjunganSelesaiPercent = $totalVisitsThisMonth > 0
             ? round(($completedVisitsThisMonth / $totalVisitsThisMonth) * 100, 1)
             : 0;
 
-        // =========================================================================
-        // GRAFIK 1: Tren Penjualan 6 Bulan Terakhir (Payment Revenue)
-        // =========================================================================
+        // 4. Tren 6 bulan (omzet MST_ORD_JUAL)
         $monthlyTrendLabels = [];
         $monthlyTrendData = [];
 
         for ($i = 5; $i >= 0; $i--) {
-            $date = Carbon::now()->subMonths($i);
-            $monthlyTrendLabels[] = $date->translatedFormat('M Y');
+            $d = Carbon::now()->subMonths($i);
+            $monthlyTrendLabels[] = $d->translatedFormat('M Y');
 
-            $revenue = Payment::where('status', 'approved')
-                ->where(function ($q) use ($date) {
-                    $q->whereMonth('approved_at', $date->month)
-                      ->whereYear('approved_at', $date->year)
-                      ->orWhere(function ($sq) use ($date) {
-                          $sq->whereNull('approved_at')
-                             ->whereMonth('created_at', $date->month)
-                             ->whereYear('created_at', $date->year);
-                      });
-                })
-                ->sum('amount_paid');
+            $rev = (float) DB::selectOne("
+                SELECT COALESCE(SUM(TOTAL), 0) AS TOTAL FROM MST_ORD_JUAL
+                WHERE ST_JADI <> 'BATAL'
+                  AND EXTRACT(MONTH FROM TANGGAL) = " . (int) $d->month . "
+                  AND EXTRACT(YEAR FROM TANGGAL) = " . (int) $d->year . "
+            ")->TOTAL;
 
-            $monthlyTrendData[] = (float) $revenue;
+            $monthlyTrendData[] = $rev;
         }
 
-        // =========================================================================
-        // GRAFIK 2: Performa Penjualan Per Sales (Menggunakan Payment atau Order)
-        // =========================================================================
-        $topSalesData = User::where('role', 'sales')->get()
-            ->map(function ($sales) {
-                // 1. Hitung total pembayaran yang sudah di-approve
-                $revenue = Payment::where('sales_id', $sales->id)
-                    ->where('status', 'approved')
-                    ->sum('amount_paid');
+        // 5. Top sales (REKAP_OMZET_EFF_CALL legacy)
+        $topSalesData = collect(DB::select('
+            SELECT FIRST 5 KD_PEG, TOTAL_OMZET FROM REKAP_OMZET_EFF_CALL
+            ORDER BY TOTAL_OMZET DESC
+        '))->map(fn ($r) => [
+            'name'    => (string) (Pegawai::find(trim($r->KD_PEG))->NM_PEG ?? trim($r->KD_PEG)),
+            'revenue' => (float) $r->TOTAL_OMZET,
+        ]);
 
-                // 2. Jika payment 0, fallback hitung total Sales Order approved
-                if ($revenue == 0) {
-                    $revenue = SalesOrder::where('sales_id', $sales->id)
-                        ->where('status', 'approved')
-                        ->sum('total_amount');
-                }
-
-                return [
-                    'name'    => $sales->name,
-                    'revenue' => (float) $revenue,
-                ];
-            })
-            ->sortByDesc('revenue')
-            ->take(5);
-
-        // Extract data untuk dikirim ke view
         $salesLabels = $topSalesData->pluck('name')->values()->toArray();
         $salesData   = $topSalesData->pluck('revenue')->values()->toArray();
 
-        // =========================================================================
-        // RETURN VIEW
-        // =========================================================================
         return view('admin.laporan.index', [
             'totalRevenueBulanIni'    => $totalRevenueBulanIni,
             'revenueGrowthHint'       => $revenueGrowthHint,

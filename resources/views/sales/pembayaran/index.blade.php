@@ -35,7 +35,7 @@
     <form action="{{ route('sales.pembayaran.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
 
-        <input type="hidden" name="invoice_id" value="{{ $order->invoice->id }}">
+        <input type="hidden" name="invoice_id" value="{{ $invoice->NO_ENT ?? $order->NO_ENT }}">
 
         <!-- Info Order & Invoice (Read-only) -->
         <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:10px;padding:16px;margin-bottom:24px;">
@@ -50,33 +50,33 @@
                 
                 <div>
                     <label style="display:block;font-size:12px;color:#666;margin-bottom:4px;">Nomor Invoice</label>
-                    <input type="text" value="{{ $order->invoice->invoice_number }}" readonly 
+                    <input type="text" value="{{ $invoice->invoice_number ?? $order->invoice->invoice_number ?? '-' }}" readonly 
                            style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#333;font-weight:600;">
                 </div>
             </div>
 
             <div style="margin-top:12px;">
                 <label style="display:block;font-size:12px;color:#666;margin-bottom:4px;">Pelanggan</label>
-                <input type="text" value="{{ $order->customer->name }}" readonly 
+                <input type="text" value="{{ $order->customer->name ?? '-' }}" readonly 
                        style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#333;">
             </div>
 
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px;">
                 <div>
                     <label style="display:block;font-size:12px;color:#666;margin-bottom:4px;">Total Invoice</label>
-                    <input type="text" value="Rp {{ number_format($order->invoice->total_amount, 0, ',', '.') }}" readonly 
+                    <input type="text" value="Rp {{ number_format($invoice->total_amount ?? $order->total_amount ?? 0, 0, ',', '.') }}" readonly 
                            style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#333;font-weight:600;">
                 </div>
                 
                 <div>
                     <label style="display:block;font-size:12px;color:#666;margin-bottom:4px;">Sisa Tagihan</label>
-                    <input type="text" value="Rp {{ number_format($order->invoice->remaining_balance, 0, ',', '.') }}" readonly 
+                    <input type="text" value="Rp {{ number_format($invoice->remaining_balance ?? $order->total_amount ?? 0, 0, ',', '.') }}" readonly 
                            style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#C76C28;font-weight:600;">
                 </div>
                 
                 <div>
                     <label style="display:block;font-size:12px;color:#666;margin-bottom:4px;">Jatuh Tempo</label>
-                    <input type="text" value="{{ \Carbon\Carbon::parse($order->invoice->due_date)->format('d M Y') }}" readonly 
+                    <input type="text" value="{{ $invoice && $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') : '-' }}" readonly 
                            style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#333;">
                 </div>
             </div>
@@ -108,11 +108,11 @@
                     Nominal Pembayaran <span style="color:#C76C28;">*</span>
                 </label>
                 <input type="number" name="amount_paid" id="amount_paid" 
-                       value="{{ old('amount_paid', $order->invoice->remaining_balance) }}" 
+                       value="{{ old('amount_paid', $invoice->remaining_balance ?? $order->total_amount ?? 0) }}" 
                        min="0" step="0.01" required
                        style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;"
                        placeholder="Masukkan nominal pembayaran">
-                <small style="font-size:12px;color:#666;">Sisa tagihan: Rp {{ number_format($order->invoice->remaining_balance, 0, ',', '.') }}</small>
+                <small style="font-size:12px;color:#666;">Sisa tagihan: Rp {{ number_format($invoice->remaining_balance ?? $order->total_amount ?? 0, 0, ',', '.') }}</small>
                 @error('amount_paid')
                     <small style="color:#c33;font-size:12px;display:block;">{{ $message }}</small>
                 @enderror

@@ -58,6 +58,10 @@ class FirebirdModel extends Model
             'invoice_date',
             'due_date',
             'visit_date',
+            // kolom timestamp legacy
+            'TANGGAL', 'JAM_CHECKIN', 'TGL_APPROVE', 'DIBUAT',
+            'TGL_JATUH_TEMPO', 'TGL_JT', 'TGL_HARGA', 'RNC_TGL_KIRIM',
+            'TGL_EXP', 'TGL_PO', 'TGL_AWAL', 'TGL_AKHIR', 'RLS_TGL_KIRIM',
         ]) || str_ends_with($column, '_at') || str_ends_with($column, '_date');
     }
 
@@ -105,4 +109,16 @@ class FirebirdModel extends Model
             return !(($this->attributes[$date] ?? null) instanceof Expression);
         });
     }
+
+    /**
+     * Get the primary key value as 'id' attribute for view compatibility.
+     *
+     * @return mixed
+     */
+    public function getIdAttribute()
+    {
+        return $this->getKey();
+    }
 }
+
+

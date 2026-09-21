@@ -14,7 +14,7 @@ class StoreVisitRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'customer_id' => 'required|exists:customers,id',
+            'customer_id' => 'required|exists:CUSTOMER,KD_CUST',
             'visit_date'  => 'required|date',
             'purpose'     => 'required|in:merchandising,collection,order',
             'notes'       => 'nullable|string',

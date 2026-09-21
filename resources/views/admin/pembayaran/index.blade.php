@@ -67,18 +67,34 @@
     </article>
 </div>
 
-<!-- Tabs -->
-<div style="border-bottom:2px solid #f3f4f6;margin-bottom:20px;">
-    <div style="display:flex;gap:24px;">
-        <button class="tab-btn active" data-tab="pending">Pending ({{ $pendingApproval }})</button>
-        <button class="tab-btn" data-tab="approved">Approved ({{ $approved }})</button>
-        <button class="tab-btn" data-tab="rejected">Rejected ({{ $rejected }})</button>
+<!-- Tabs & Search Toolbar -->
+<div class="toolbar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <a href="{{ route('admin.payments', ['status' => 'pending']) }}" class="button {{ $status === 'pending' ? 'button-primary' : 'button-soft' }}" style="font-size:13px;padding:8px 16px;">
+            Pending ({{ $pendingApproval }})
+        </a>
+        <a href="{{ route('admin.payments', ['status' => 'approved']) }}" class="button {{ $status === 'approved' ? 'button-primary' : 'button-soft' }}" style="font-size:13px;padding:8px 16px;">
+            Approved ({{ $approved }})
+        </a>
+        <a href="{{ route('admin.payments', ['status' => 'rejected']) }}" class="button {{ $status === 'rejected' ? 'button-primary' : 'button-soft' }}" style="font-size:13px;padding:8px 16px;">
+            Rejected ({{ $rejected }})
+        </a>
+        <a href="{{ route('admin.payments', ['status' => 'all']) }}" class="button {{ $status === 'all' ? 'button-primary' : 'button-soft' }}" style="font-size:13px;padding:8px 16px;">
+            Semua
+        </a>
     </div>
+
+    <form action="{{ route('admin.payments') }}" method="GET" style="flex: 1; max-width: 360px;">
+        <input type="hidden" name="status" value="{{ $status }}">
+        <label class="search-box" style="width: 100%;">
+            <span>⌕</span>
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari no. bukti, invoice, customer..." onchange="this.form.submit()">
+        </label>
+    </form>
 </div>
 
-<!-- Pending Approval Table -->
-<article class="card tab-content" id="tab-pending">
-    <h3 style="margin:0 0 16px;font-size:16px;">Pembayaran Menunggu Approval</h3>
+<!-- Table -->
+<article class="card">
     <div class="table-responsive">
         <table>
             <thead>
@@ -95,166 +111,43 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($paymentsByStatus['pending_approval'] as $payment)
+                @forelse($payments as $payment)
                     <tr>
                         <td><b>{{ $payment->payment_number }}</b></td>
-                        <td>{{ \Carbon\Carbon::parse($payment->created_at)->format('d M Y H:i') }}</td>
-                        <td>{{ $payment->customer->name }}</td>
-                        <td>{{ $payment->sales->name }}</td>
-                        <td>{{ $payment->invoice->invoice_number }}</td>
+                        <td>{{ $payment->created_at ? \Carbon\Carbon::parse($payment->created_at)->format('d M Y H:i') : '-' }}</td>
+                        <td>{{ $payment->customer->name ?? '-' }}</td>
+                        <td>{{ $payment->sales->name ?? '-' }}</td>
+                        <td>{{ $payment->invoice->invoice_number ?? $payment->NO_ENT ?? '-' }}</td>
                         <td>{{ ucfirst($payment->payment_method) }}</td>
                         <td>Rp {{ number_format($payment->amount_paid, 0, ',', '.') }}</td>
-                        <td><span class="badge badge-warning">Pending</span></td>
                         <td>
-                            <a href="{{ route('admin.pembayaran.show', $payment->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">Review</a>
+                            @if($payment->status === 'approved')
+                                <span class="badge badge-success">Approved</span>
+                            @elseif($payment->status === 'rejected')
+                                <span class="badge badge-danger">Rejected</span>
+                            @else
+                                <span class="badge badge-warning">Pending</span>
+                            @endif
+                        </td>
+                        <td>
+                            <a href="{{ route('admin.pembayaran.show', $payment->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">
+                                {{ $payment->status === 'pending_approval' ? 'Review' : 'Detail' }}
+                            </a>
                         </td>
                     </tr>
                 @empty
                     <tr>
                         <td colspan="9" style="padding:40px 20px;text-align:center;color:var(--muted);">
-                            <p style="font-size:14px;">Tidak ada pembayaran pending</p>
+                            <div style="font-size:40px;margin-bottom:8px;">💳</div>
+                            <p style="font-size:14px;font-weight:500;">Tidak ada pembayaran pada status ini</p>
                         </td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+
+    @include('partials.pagination', ['paginator' => $payments, 'itemLabel' => 'pembayaran'])
 </article>
 
-<!-- Approved Table -->
-<article class="card tab-content" id="tab-approved" style="display:none;">
-    <h3 style="margin:0 0 16px;font-size:16px;">Pembayaran yang Sudah Diapprove</h3>
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>No. Pembayaran</th>
-                    <th>Tanggal</th>
-                    <th>Customer</th>
-                    <th>Sales</th>
-                    <th>No. Invoice</th>
-                    <th>Metode</th>
-                    <th>Jumlah</th>
-                    <th>Approved By</th>
-                    <th>Approved At</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($paymentsByStatus['approved'] as $payment)
-                    <tr>
-                        <td><b>{{ $payment->payment_number }}</b></td>
-                        <td>{{ \Carbon\Carbon::parse($payment->created_at)->format('d M Y') }}</td>
-                        <td>{{ $payment->customer->name }}</td>
-                        <td>{{ $payment->sales->name }}</td>
-                        <td>{{ $payment->invoice->invoice_number }}</td>
-                        <td>{{ ucfirst($payment->payment_method) }}</td>
-                        <td>Rp {{ number_format($payment->amount_paid, 0, ',', '.') }}</td>
-                        <td>{{ $payment->approver->name ?? '-' }}</td>
-                        <td>{{ $payment->approved_at ? \Carbon\Carbon::parse($payment->approved_at)->format('d M Y H:i') : '-' }}</td>
-                        <td>
-                            <a href="{{ route('admin.pembayaran.show', $payment->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">Detail</a>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="10" style="padding:40px 20px;text-align:center;color:var(--muted);">
-                            <p style="font-size:14px;">Belum ada pembayaran yang diapprove</p>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</article>
-
-<!-- Rejected Table -->
-<article class="card tab-content" id="tab-rejected" style="display:none;">
-    <h3 style="margin:0 0 16px;font-size:16px;">Pembayaran yang Ditolak</h3>
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>No. Pembayaran</th>
-                    <th>Tanggal</th>
-                    <th>Customer</th>
-                    <th>Sales</th>
-                    <th>No. Invoice</th>
-                    <th>Metode</th>
-                    <th>Jumlah</th>
-                    <th>Alasan Ditolak</th>
-                    <th>Rejected By</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($paymentsByStatus['rejected'] as $payment)
-                    <tr>
-                        <td><b>{{ $payment->payment_number }}</b></td>
-                        <td>{{ \Carbon\Carbon::parse($payment->created_at)->format('d M Y') }}</td>
-                        <td>{{ $payment->customer->name }}</td>
-                        <td>{{ $payment->sales->name }}</td>
-                        <td>{{ $payment->invoice->invoice_number }}</td>
-                        <td>{{ ucfirst($payment->payment_method) }}</td>
-                        <td>Rp {{ number_format($payment->amount_paid, 0, ',', '.') }}</td>
-                        <td style="max-width:200px;">{{ $payment->rejection_reason ?? '-' }}</td>
-                        <td>{{ $payment->approver->name ?? '-' }}</td>
-                        <td>
-                            <a href="{{ route('admin.pembayaran.show', $payment->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">Detail</a>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="10" style="padding:40px 20px;text-align:center;color:var(--muted);">
-                            <p style="font-size:14px;">Tidak ada pembayaran yang ditolak</p>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</article>
-
-@push('scripts')
-<script>
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const tab = this.getAttribute('data-tab');
-        
-        // Update active button
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        
-        // Show/hide content
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.style.display = 'none';
-        });
-        document.getElementById('tab-' + tab).style.display = 'block';
-    });
-});
-</script>
-
-<style>
-.tab-btn {
-    background: none;
-    border: none;
-    padding: 12px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-}
-
-.tab-btn.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
-}
-
-.tab-btn:hover {
-    color: var(--text);
-}
-</style>
-@endpush
 @endsection

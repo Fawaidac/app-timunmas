@@ -18,6 +18,7 @@ use App\Http\Controllers\Sales\TagihanController;
 use App\Http\Controllers\Sales\PembayaranController;
 use App\Http\Controllers\Sales\LaporanController;
 use App\Http\Controllers\Sales\StockController;
+use App\Http\Controllers\Sales\CustomerController as SalesCustomerController;
 use Illuminate\Support\Facades\App;
 
 // Auth routes
@@ -25,8 +26,15 @@ Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Pilih pegawai (untuk sales login via MST_PENGGUNA yang belum ada KD_PEG)
+Route::middleware('auth:web')->group(function () {
+    Route::get('/select-pegawai',  [AuthController::class, 'showSelectPegawai'])->name('auth.select-pegawai');
+    Route::post('/select-pegawai', [AuthController::class, 'selectPegawai'])->name('auth.select-pegawai.post');
+});
+
 // Sales routes (protected)
-Route::middleware(['auth', 'role:sales'])->prefix('sales')->name('sales.')->group(function () {
+// Sales routes: bisa login via guard 'sales' (PEGAWAI) atau guard 'web' role=sales (MST_PENGGUNA)
+Route::middleware(['auth:sales,web', 'role:sales'])->prefix('sales')->name('sales.')->group(function () {
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     
@@ -46,28 +54,38 @@ Route::middleware(['auth', 'role:sales'])->prefix('sales')->name('sales.')->grou
     Route::get('/order', [OrderController::class, 'index'])->name('order.index');
     Route::get('/order/create', [OrderController::class, 'create'])->name('order.create');
     Route::post('/order', [OrderController::class, 'store'])->name('order.store');
-    Route::get('/order/{id}', [OrderController::class, 'show'])->name('order.show');
+    Route::get('/order/{id}', [OrderController::class, 'show'])->name('order.show')->where('id', '.*');
     
     // Tagihan
     Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
     
     // Pembayaran
-    Route::get('/pembayaran/{orderId}', [PembayaranController::class, 'index'])->name('pembayaran.index');
+    Route::get('/pembayaran/{orderId}', [PembayaranController::class, 'index'])->name('pembayaran.index')->where('orderId', '.*');
     Route::post('/pembayaran', [PembayaranController::class, 'store'])->name('pembayaran.store');
     
     // Stok / Products
     Route::get('/stok', [StockController::class, 'index'])->name('stok.index');
-    Route::get('/stok/{product}', [StockController::class, 'show'])->name('stok.show');
+    Route::get('/stok/{product}', [StockController::class, 'show'])->name('stok.show')->where('product', '.*');
     
     // Laporan / Reports
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
+
+    // Customer milik sales (KD_PEG = sales yang login)
+    Route::prefix('customer')->name('customer.')->group(function () {
+        Route::get('/',                     [SalesCustomerController::class, 'index'])->name('index');
+        Route::get('/create',               [SalesCustomerController::class, 'create'])->name('create');
+        Route::post('/',                    [SalesCustomerController::class, 'store'])->name('store');
+        Route::get('/{kdCust}',             [SalesCustomerController::class, 'show'])->name('show')->where('kdCust', '.*');
+        Route::get('/{kdCust}/edit',        [SalesCustomerController::class, 'edit'])->name('edit')->where('kdCust', '.*');
+        Route::put('/{kdCust}',             [SalesCustomerController::class, 'update'])->name('update')->where('kdCust', '.*');
+    });
 });
 
 // Admin routes (protected)
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth:web', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders');
-    Route::get('/order/{id}', [AdminOrderController::class, 'show'])->name('order.show');
+    Route::get('/order/{id}', [AdminOrderController::class, 'show'])->name('order.show')->where('id', '.*');
 
     Route::get('/visits', [\App\Http\Controllers\Admin\VisitController::class, 'index'])->name('visits');
     Route::get('/visits/{id}', [\App\Http\Controllers\Admin\VisitController::class, 'show'])->name('visits.show');
@@ -91,6 +109,19 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // CRUD: Gudang / Warehouses
     Route::resource('warehouses', WarehouseController::class);
 
-    // CRUD: Pengguna / Users
-    Route::resource('users', UserController::class);
+
+    // Pengguna: Admin (MST_PENGGUNA) + Sales (PEGAWAI)
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/',                    [UserController::class, 'index'])->name('index');
+        // Buat admin baru
+        Route::get('/create-admin',        [UserController::class, 'createAdmin'])->name('create.admin');
+        Route::post('/create-admin',       [UserController::class, 'storeAdmin'])->name('store.admin');
+        // Buat akun sales (dari PEGAWAI)
+        Route::get('/create-sales',        [UserController::class, 'createSales'])->name('create.sales');
+        Route::post('/create-sales',       [UserController::class, 'storeSales'])->name('store.sales');
+        // Edit & Delete (source=admin|sales via query/form param)
+        Route::get('/{id}/edit',           [UserController::class, 'edit'])->name('edit');
+        Route::put('/{id}',                [UserController::class, 'update'])->name('update');
+        Route::delete('/{id}',             [UserController::class, 'destroy'])->name('destroy');
+    });
 });

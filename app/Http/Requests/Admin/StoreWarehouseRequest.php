@@ -14,18 +14,18 @@ class StoreWarehouseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code'      => 'required|string|max:50|unique:warehouses,code',
-            'name'      => 'required|string|max:100',
-            'address'   => 'nullable|string',
+            'name'      => 'required|string|max:50|unique:GUDANG,NM_GUDANG',
+            'code'      => 'nullable|string|max:50',
+            'address'   => 'nullable|string|max:100',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'code.required' => 'Kode gudang wajib diisi.',
-            'code.unique'   => 'Kode gudang sudah dipakai.',
             'name.required' => 'Nama gudang wajib diisi.',
+            'name.unique'   => 'Nama / kode gudang sudah terdaftar.',
+            'name.max'      => 'Nama gudang maksimal 50 karakter.',
         ];
     }
 }

@@ -15,6 +15,9 @@
         <a href="{{ route('sales.kunjungan.index') }}" class="{{ request()->routeIs('sales.kunjungan.index') || request()->routeIs('sales.checkin') || request()->routeIs('sales.order') || request()->routeIs('sales.pembayaran') ? 'active' : '' }}">
             <i class="nav-icon ri-map-pin-2-line"></i><span>Kunjungan Sales</span>
         </a>
+        <a href="{{ route('sales.customer.index') }}" class="{{ request()->routeIs('sales.customer.*') ? 'active' : '' }}">
+            <i class="nav-icon ri-store-2-line"></i><span>Customer Saya</span>
+        </a>
 
         <div class="nav-label">Transaksi</div>
         <a href="{{ route('sales.tagihan.index') }}" class="{{ request()->routeIs('sales.tagihan.index') ? 'active' : '' }}">
@@ -32,10 +35,14 @@
     
     <div class="sidebar-profile">
         <div class="user-info">
-            <div class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</div>
+            @php
+                $sidebarNama = \App\Helpers\SalesHelper::nama();
+                $sidebarArea = \App\Helpers\SalesHelper::pegawai()?->KD_WIL ?? auth()->user()->area ?? 'Sales Team';
+            @endphp
+            <div class="avatar">{{ strtoupper(substr($sidebarNama, 0, 2)) }}</div>
             <div class="user-details">
-                <b>{{ auth()->user()->name }}</b>
-                <span>{{ auth()->user()->area ?? 'Sales Team' }}</span>
+                <b>{{ $sidebarNama }}</b>
+                <span>{{ $sidebarArea }}</span>
             </div>
         </div>
         <form action="{{ route('logout') }}" method="POST" class="logout-form">

@@ -41,9 +41,9 @@
                 <p style="margin:0 0 16px;color:var(--muted);font-size:13px;">📍 {{ $warehouse->address }}</p>
             @endif
             <div style="display:flex;gap:6px;margin-top:auto;">
-                <a href="{{ route('admin.warehouses.show', $warehouse->id) }}" class="button button-soft" style="flex:1;padding:8px;font-size:11px;text-align:center;">Detail</a>
-                <a href="{{ route('admin.warehouses.edit', $warehouse->id) }}" class="button button-soft" style="flex:1;padding:8px;font-size:11px;text-align:center;">Edit</a>
-                <form action="{{ route('admin.warehouses.destroy', $warehouse->id) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Gudang', 'Gudang ini akan dihapus permanen.');" style="flex:1;">
+                <a href="{{ route('admin.warehouses.show', $warehouse->NM_GUDANG) }}" class="button button-soft" style="flex:1;padding:8px;font-size:11px;text-align:center;">Detail</a>
+                <a href="{{ route('admin.warehouses.edit', $warehouse->NM_GUDANG) }}" class="button button-soft" style="flex:1;padding:8px;font-size:11px;text-align:center;">Edit</a>
+                <form action="{{ route('admin.warehouses.destroy', $warehouse->NM_GUDANG) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Gudang', 'Gudang ini akan dihapus permanen.');" style="flex:1;">
                     @csrf
                     @method('DELETE')
                     <button type="submit" style="width:100%;padding:8px;font-size:11px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;cursor:pointer;">Hapus</button>
@@ -58,4 +58,6 @@
         </div>
     @endforelse
 </div>
+
+@include('partials.pagination', ['paginator' => $warehouses, 'itemLabel' => 'gudang'])
 @endsection

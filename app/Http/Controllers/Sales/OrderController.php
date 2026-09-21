@@ -7,31 +7,48 @@ use App\Http\Requests\Sales\StoreOrderRequest;
 use App\Models\SalesOrder;
 use App\Models\SalesVisit;
 use App\Models\OrderItem;
-use App\Models\Invoice;
 use App\Models\Product;
+use App\Models\Customer;
+use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Sales Order -> MST_ORD_JUAL + DET_ORD_JUAL (legacy).
+ * Nomor NO_ENT dibangkitkan web dengan pola desktop: OJYYMM/seri/urut,
+ * urut = MAX(urut)+1 per bulan (dalam transaksi).
+ */
 class OrderController extends Controller
 {
-    
+    private function salesKdPeg(): ?string
+    {
+        return auth()->user()->KD_PEG ?: null;
+    }
+
+    private function scoped()
+    {
+        return SalesOrder::when(
+            $this->salesKdPeg(),
+            fn ($q, $p) => $q->where('KD_PEG', $p),
+            fn ($q) => $q->whereRaw('1=0')
+        );
+    }
+
     public function index(Request $request)
     {
-        $orders = SalesOrder::with(['customer', 'items', 'invoice.payments'])
-            ->where('sales_id', auth()->id())
-            ->when($request->filled('customer_id'), function ($query) use ($request) {
-                $query->where('customer_id', $request->customer_id);
-            })
-            ->orderBy('order_date', 'desc')
-            ->get();
+        $orders = $this->scoped()->with(['customer', 'items'])
+            ->when($request->filled('customer_id'), fn ($q) => $q->where('KD_CUST', $request->customer_id))
+            ->orderBy('TANGGAL', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('sales.order.index', compact('orders'));
     }
 
     public function create(Request $request)
     {
-        $customers = \App\Models\Customer::orderBy('name')->get();
-        $products = \App\Models\Product::with('warehouses')->orderBy('name')->get();
+        $customers = Customer::orderBy('NM_CUST')->get();
+        $products = Product::orderBy('NM_BRG')->get();
 
         $selectedCustomerId = $request->query('customer_id');
         $selectedVisitId = $request->query('visit_id');
@@ -39,165 +56,107 @@ class OrderController extends Controller
         return view('sales.order.create-standalone', compact('customers', 'products', 'selectedCustomerId', 'selectedVisitId'));
     }
 
-    public function store(StoreOrderRequest $request)
-    {
-        // Proteksi duplikat: tolak jika ada order identik (sales, customer,
-        // tanggal, total) yang dibuat kurang dari 2 menit lalu (double-submit).
-        $total = 0;
-        foreach ($request->product_id as $i => $pid) {
-            $total += $request->quantity[$i] * $request->price[$i];
-        }
-
-        $duplicate = SalesOrder::where('sales_id', auth()->id())
-            ->where('customer_id', $request->customer_id)
-            ->where('total_amount', $total)
-            ->where('created_at', '>=', now()->subMinutes(2))
-            ->first();
-
-        if ($duplicate) {
-            return redirect()
-                ->route($request->visit_id ? 'sales.kunjungan.show' : 'sales.order.show', $request->visit_id ?? $duplicate->id)
-                ->with('warning', 'Order terdeteksi duplikat dan tidak disimpan ulang. Nomor order sebelumnya: ' . $duplicate->order_number);
-        }
-
-        $order = DB::transaction(function () use ($request) {
-            // Generate nomor order
-            $orderNumber = $this->generateOrderNumber();
-
-            // Hitung total
-            $total = 0;
-            foreach ($request->product_id as $index => $productId) {
-                $qty = $request->quantity[$index];
-                $price = $request->price[$index];
-                $total += $qty * $price;
-            }
-
-            // Buat order
-            $order = SalesOrder::create([
-                'order_number'      => $orderNumber,
-                'visit_id'          => $request->visit_id ?? null,
-                'customer_id'       => $request->customer_id,
-                'sales_id'          => auth()->id(),
-                'order_date'        => $request->order_date,
-                'payment_type'      => $request->payment_type,
-                'payment_term_days' => (int) ($request->payment_term_days ?? 7),
-                'total_amount'      => $total,
-                'status'            => 'pending',
-            ]);
-
-            // Buat order items & kurangi stok gudang
-            foreach ($request->product_id as $index => $productId) {
-                $qty = (int) $request->quantity[$index];
-
-                OrderItem::create([
-                    'order_id'       => $order->id,
-                    'product_id'     => $productId,
-                    'quantity'       => $qty,
-                    'price_per_unit' => $request->price[$index],
-                    'subtotal'       => $qty * $request->price[$index],
-                ]);
-
-                // Kurangi stok di gudang (WarehouseStock)
-                $remainingQtyToDeduct = $qty;
-                $warehouseStocks = \App\Models\WarehouseStock::where('product_id', $productId)
-                    ->orderBy('stock_quantity', 'desc')
-                    ->get();
-
-                foreach ($warehouseStocks as $whStock) {
-                    if ($remainingQtyToDeduct <= 0) {
-                        break;
-                    }
-
-                    if ($whStock->stock_quantity >= $remainingQtyToDeduct) {
-                        $whStock->decrement('stock_quantity', $remainingQtyToDeduct);
-                        $remainingQtyToDeduct = 0;
-                    } else {
-                        $remainingQtyToDeduct -= $whStock->stock_quantity;
-                        $whStock->update(['stock_quantity' => 0]);
-                    }
-                }
-            }
-
-            // Update visit jika dari kunjungan
-            if ($request->visit_id) {
-                $visit = SalesVisit::find($request->visit_id);
-                if ($visit) {
-                    $visit->update(['status' => 'completed']);
-                }
-            }
-
-            // Auto-create invoice
-            $invoiceNumber = $this->generateInvoiceNumber();
-            $termDays = (int) ($order->payment_term_days ?: 7);
-            // Gunakan nilai asli dari request, bukan $order->order_date,
-            // karena atribut model sudah dikonversi menjadi Query\Expression (CAST) oleh FirebirdModel.
-            $dueDate = \Carbon\Carbon::parse($request->order_date)->addDays($termDays);
-
-            Invoice::create([
-                'invoice_number'    => $invoiceNumber,
-                'order_id'          => $order->id,
-                'customer_id'       => $order->customer_id,
-                'total_amount'      => $total,
-                'remaining_balance' => $total,
-                'invoice_date'      => $order->order_date,
-                'due_date'          => $dueDate,
-                'status'            => 'unpaid',
-            ]);
-
-            return $order;
-        });
-
-        if ($request->visit_id) {
-            return redirect()->route('sales.kunjungan.show', $request->visit_id)
-                ->with('success', 'Sales Order berhasil dibuat. Nomor: ' . $order->order_number);
-        }
-
-        return redirect()->route('sales.order.show', $order->id)
-            ->with('success', 'Sales Order berhasil dibuat. Nomor: ' . $order->order_number);
-    }
-
     public function show($id)
     {
-        $order = SalesOrder::with(['customer', 'sales', 'items.product', 'visit', 'invoice.payments'])
-            ->where('sales_id', auth()->id())
-            ->findOrFail($id);
+        $order = $this->scoped()->with(['customer', 'items.product'])
+            ->where('NO_ENT', $id)->firstOrFail();
 
         return view('sales.order.show', compact('order'));
     }
 
-    private function generateOrderNumber()
+    public function store(StoreOrderRequest $request)
     {
-        $prefix = 'SO';
-        $date = date('Ymd');
-        $latest = SalesOrder::where('order_number', 'like', $prefix . $date . '%')
-            ->orderBy('order_number', 'desc')
-            ->first();
-
-        if ($latest) {
-            $lastNumber = (int) substr($latest->order_number, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '0001';
+        // Proteksi duplikat (double-submit): order identik < 2 menit.
+        $total = 0;
+        foreach ($request->product_id as $i => $pid) {
+            $total += (float) $request->quantity[$i] * (float) $request->price[$i];
         }
 
-        return $prefix . $date . $newNumber;
+        $duplicate = $this->scoped()
+            ->where('KD_CUST', $request->customer_id)
+            ->where('TOTAL', $total)
+            ->where('TANGGAL', $request->order_date)
+            ->first();
+
+        if ($duplicate) {
+            return redirect()
+                ->route($request->visit_id ? 'sales.kunjungan.show' : 'sales.order.show', $request->visit_id ?? $duplicate->NO_ENT)
+                ->with('warning', 'Order terdeteksi duplikat dan tidak disimpan ulang. Nomor order sebelumnya: ' . $duplicate->NO_ENT);
+        }
+
+        $order = DB::transaction(function () use ($request, $total) {
+            $tanggal = \Carbon\Carbon::parse($request->order_date);
+            $noEnt = $this->generateNoEnt($tanggal);
+            $gudang = Warehouse::query()->orderBy('NM_GUDANG')->value('NM_GUDANG');
+
+            SalesOrder::create([
+                'NO_ENT'    => $noEnt,
+                'TANGGAL'   => $tanggal->format('Y-m-d H:i:s'),
+                'TGL_HARGA' => $tanggal->format('Y-m-d H:i:s'),
+                'RNC_TGL_KIRIM' => $tanggal->format('Y-m-d H:i:s'),
+                'TGL_EXP'   => $tanggal->addDays(7)->format('Y-m-d H:i:s'),
+                'KD_CUST'   => $request->customer_id,
+                'TOTAL'     => $total,
+                'KD_PEG'    => $this->salesKdPeg(),
+                'KD_USER'   => mb_substr((string) auth()->user()->NM_USER, 0, 32),
+                'ST_JADI'   => 'OS',
+                'JNS_BYR'   => $request->payment_type === 'cash' ? 'TUNAI' : 'KREDIT',
+                'TOP'       => $request->payment_type === 'cash' ? 0 : (int) ($request->payment_term_days ?? 7),
+                'GUDANG'    => $gudang,
+            ]);
+
+            foreach ($request->product_id as $index => $kdBrg) {
+                $product = Product::find($kdBrg);
+                $sub = (float) $request->quantity[$index] * (float) $request->price[$index];
+
+                OrderItem::create([
+                    'NO_ENT'    => $noEnt,
+                    'NMR'       => $index + 1,
+                    'KD_BRG'    => $kdBrg,
+                    'NM_BRG'    => mb_substr((string) $product->NM_BRG, 0, 50),
+                    'SATUAN'    => mb_substr((string) ($request->unit[$index] ?? $product->unit), 0, 5),
+                    'JUMLAH'    => (float) $request->quantity[$index],
+                    'HARGA'     => (float) $request->price[$index],
+                    'TOTAL'     => $sub,
+                    'SUB_TOTAL' => $sub,
+                    'GUDANG'    => $gudang,
+                ]);
+            }
+
+            // Update kunjungan jika order dibuat dari kunjungan
+            if ($request->visit_id) {
+                $visit = SalesVisit::find($request->visit_id);
+                if ($visit) {
+                    $visit->update(['STATUS' => 'completed', 'NO_ENT_ORD' => $noEnt]);
+                }
+            }
+
+            return $noEnt;
+        });
+
+        if ($request->visit_id) {
+            return redirect()->route('sales.kunjungan.show', $request->visit_id)
+                ->with('success', 'Sales Order berhasil dibuat. Nomor: ' . $order);
+        }
+
+        return redirect()->route('sales.order.show', $order)
+            ->with('success', 'Sales Order berhasil dibuat. Nomor: ' . $order);
     }
 
-    private function generateInvoiceNumber()
+    /**
+     * Nomor order pola desktop: OJYYMM/seri/urut (urut = MAX+1 per bulan).
+     * Contoh terverifikasi: OJ2608/001/00027.
+     */
+    private function generateNoEnt(\Carbon\Carbon $tanggal): string
     {
-        $prefix = 'INV';
-        $date = date('Ymd');
-        $latest = Invoice::where('invoice_number', 'like', $prefix . $date . '%')
-            ->orderBy('invoice_number', 'desc')
-            ->first();
+        $prefix = 'OJ' . $tanggal->format('ym') . '/001/';
+        $last = (string) (SalesOrder::query()
+            ->where('NO_ENT', 'like', $prefix . '%')
+            ->orderBy('NO_ENT', 'desc')
+            ->value('NO_ENT') ?? '');
 
-        if ($latest) {
-            $lastNumber = (int) substr($latest->invoice_number, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '0001';
-        }
+        $urut = ((int) substr($last, -5) ?: 0) + 1;
 
-        return $prefix . $date . $newNumber;
+        return $prefix . str_pad((string) $urut, 5, '0', STR_PAD_LEFT);
     }
 }

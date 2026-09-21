@@ -1001,3 +1001,70 @@ input[type="checkbox"] {
         white-space: normal;
     }
 }
+
+/* ==========================================================================
+   Universal Pagination Styles
+   ========================================================================== */
+.pagination-wrapper {
+    margin-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-top: 18px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.pagination-info {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.pagination-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.pagination-container .page-item .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+}
+
+.pagination-container .page-item .page-link:hover {
+    border-color: #f97316;
+    color: #ea580c;
+    background-color: #fff7ed;
+}
+
+.pagination-container .page-item.active .page-link {
+    background-color: #f97316;
+    border-color: #f97316;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(249, 115, 22, 0.25);
+}
+
+.pagination-container .page-item.disabled .page-link {
+    background-color: #f8fafc;
+    border-color: #e2e8f0;
+    color: #cbd5e1;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+

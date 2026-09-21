@@ -11,8 +11,8 @@
         <p>Kode: {{ $warehouse->code }}</p>
     </div>
     <div style="display:flex;gap:8px;">
-        <a href="{{ route('admin.warehouses.edit', $warehouse->id) }}" class="button button-soft">✏ Edit</a>
-        <form action="{{ route('admin.warehouses.destroy', $warehouse->id) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Gudang', 'Gudang ini akan dihapus permanen.');">
+        <a href="{{ route('admin.warehouses.edit', $warehouse->NM_GUDANG) }}" class="button button-soft">✏ Edit</a>
+        <form action="{{ route('admin.warehouses.destroy', $warehouse->NM_GUDANG) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Gudang', 'Gudang ini akan dihapus permanen.');">
             @csrf
             @method('DELETE')
             <button type="submit" class="button" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;padding:8px 16px;cursor:pointer;">🗑 Hapus</button>
@@ -59,14 +59,14 @@
             <div style="width:40px;height:40px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">📅</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Ditambahkan</div>
-                <div style="font-size:13px;font-weight:600;">{{ $warehouse->created_at->format('d M Y') }}</div>
+                <div style="font-size:13px;font-weight:600;">{{ $warehouse->created_at ? \Carbon\Carbon::parse($warehouse->created_at)->format('d M Y') : '-' }}</div>
             </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:40px;height:40px;background:#fdf4ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">🔄</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Terakhir diupdate</div>
-                <div style="font-size:13px;font-weight:600;">{{ $warehouse->updated_at->format('d M Y') }}</div>
+                <div style="font-size:13px;font-weight:600;">{{ $warehouse->updated_at ? \Carbon\Carbon::parse($warehouse->updated_at)->format('d M Y') : '-' }}</div>
             </div>
         </div>
     </article>

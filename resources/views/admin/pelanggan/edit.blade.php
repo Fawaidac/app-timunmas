@@ -2,7 +2,7 @@
 
 @section('title', 'Edit Customer - Admin')
 @section('page_title', 'Edit Customer')
-@section('page_description', 'Perbarui informasi customer')
+@section('page_description', 'Perbarui informasi profil, lokasi GPS, dan kebijakan kredit customer')
 
 @push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -10,26 +10,32 @@
     #map {
         height: 350px;
         width: 100%;
-        border-radius: 16px;
+        border-radius: 12px;
         border: 1px solid #cbd5e1;
         margin-top: 10px;
         z-index: 1;
     }
-    .map-search-input:focus {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
-        background: #ffffff !important;
+    .form-section-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 24px 0 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 </style>
 @endpush
 
 @section('content')
 <div class="section-head">
-    <h2>Edit Customer</h2>
-    <p>Perbarui informasi: {{ $customer->name }}</p>
+    <h2>Edit Customer: {{ $customer->NM_CUST }}</h2>
+    <p>Perbarui informasi master data customer [<code>{{ $customer->KD_CUST }}</code>].</p>
 </div>
 
-<article class="card" style="width: 80%; max-width: 100%;">
+<article class="card" style="max-width: 900px;">
     @if($errors->any())
         <div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px 16px;border-radius:10px;margin-bottom:20px;">
             <ul style="margin:0;padding-left:18px;">
@@ -40,294 +46,324 @@
         </div>
     @endif
 
-    <form action="{{ route('admin.customers.update', $customer->id) }}" method="POST">
+    <form action="{{ route('admin.customers.update', $customer->KD_CUST) }}" method="POST">
         @csrf
         @method('PUT')
 
-        <div class="field">
-            <label style="font-size:12px;color:var(--muted);font-weight:500;">Kode Customer (tidak bisa diubah)</label>
-            <input type="text" class="form-control" value="{{ $customer->code }}" readonly style="background:#f9fafb;">
+        {{-- 1. IDENTITAS UTAMA --}}
+        <div class="form-section-title" style="margin-top:0;">
+            <span>🏢</span> Identitas Utama Customer
         </div>
 
-        <div class="field">
-            <label>Nama Customer <span style="color:#ef4444;">*</span></label>
-            <input type="text" name="name" class="form-control" value="{{ old('name', $customer->name) }}" required maxlength="150">
-        </div>
-
-        <div class="field">
-            <label>Alamat Lengkap</label>
-            <textarea name="address" class="form-control" rows="3">{{ old('address', $customer->address) }}</textarea>
+        <div class="form-grid" style="display:grid;grid-template-columns:1fr 2fr;gap:16px;">
+            <div class="field">
+                <label>Kode Customer (KD_CUST)</label>
+                <input type="text" value="{{ $customer->KD_CUST }}" readonly style="background:#f1f5f9;cursor:not-allowed;font-weight:700;">
+                <small style="color:var(--muted);font-size:11px;">Primary key di database, tidak dapat diubah.</small>
+            </div>
+            <div class="field">
+                <label>Nama Customer / Toko (NM_CUST) <span style="color:#ef4444;">*</span></label>
+                <input type="text" name="nm_cust" value="{{ old('nm_cust', $customer->NM_CUST) }}" required maxlength="50" style="text-transform:uppercase;">
+            </div>
         </div>
 
         <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="field">
-                <label>Nomor Telepon</label>
-                <input type="text" name="phone" class="form-control" value="{{ old('phone', $customer->phone) }}" maxlength="20">
+                <label>Penanggung Jawab / PIC (C_PERSON)</label>
+                <input type="text" name="c_person" value="{{ old('c_person', $customer->C_PERSON) }}" placeholder="Nama PIC" maxlength="20">
             </div>
             <div class="field">
-                <label>Email</label>
-                <input type="email" name="email" class="form-control" value="{{ old('email', $customer->email) }}" maxlength="100">
+                <label>Kategori Customer (KD_KAT)</label>
+                <select name="kd_kat">
+                    <option value="">— Pilih Kategori —</option>
+                    @foreach($kategoriList as $k)
+                        <option value="{{ trim($k->KD_KAT) }}" {{ old('kd_kat', trim((string)$customer->KD_KAT)) == trim($k->KD_KAT) ? 'selected' : '' }}>
+                            [{{ trim($k->KD_KAT) }}] {{ trim($k->KATEGORI) }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
         </div>
 
-        <!-- Section Maps / Koordinat GPS -->
-        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        {{-- 2. KONTAK --}}
+        <div class="form-section-title">
+            <span>📞</span> Informasi Kontak & Komunikasi
+        </div>
+
+        <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+            <div class="field">
+                <label>No HP / WhatsApp (HP)</label>
+                <input type="text" name="hp" value="{{ old('hp', $customer->HP) }}" placeholder="08..." maxlength="14">
+            </div>
+            <div class="field">
+                <label>Telepon 1 (TELP1)</label>
+                <input type="text" name="telp1" value="{{ old('telp1', $customer->TELP1) }}" placeholder="0332-..." maxlength="14">
+            </div>
+            <div class="field">
+                <label>Telepon 2 (TELP2)</label>
+                <input type="text" name="telp2" value="{{ old('telp2', $customer->TELP2) }}" placeholder="0332-..." maxlength="14">
+            </div>
+        </div>
+
+        <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+            <div class="field">
+                <label>Email (E_MAIL)</label>
+                <input type="email" name="e_mail" value="{{ old('e_mail', $customer->E_MAIL) }}" placeholder="email@..." maxlength="50">
+            </div>
+            <div class="field">
+                <label>Fax (FAX)</label>
+                <input type="text" name="fax" value="{{ old('fax', $customer->FAX) }}" placeholder="0332-..." maxlength="14">
+            </div>
+            <div class="field">
+                <label>Website (WEB_SITE)</label>
+                <input type="text" name="web_site" value="{{ old('web_site', $customer->WEB_SITE) }}" placeholder="www..." maxlength="50">
+            </div>
+        </div>
+
+        {{-- 3. ALAMAT & PETA GPS --}}
+        <div class="form-section-title">
+            <span>📍</span> Alamat & Titik Koordinat GPS
+        </div>
+
+        <div class="form-grid" style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+            <div class="field">
+                <label>Alamat Lengkap (ALM_CUST)</label>
+                <input type="text" name="alm_cust" value="{{ old('alm_cust', $customer->ALM_CUST) }}" placeholder="Alamat customer" maxlength="65">
+            </div>
+            <div class="field">
+                <label>Wilayah (KD_WIL)</label>
+                <select name="kd_wil">
+                    <option value="">— Pilih Wilayah —</option>
+                    @foreach($wilayahList as $w)
+                        <option value="{{ trim($w->KD_WIL) }}" {{ old('kd_wil', trim((string)$customer->KD_WIL)) == trim($w->KD_WIL) ? 'selected' : '' }}>
+                            [{{ trim($w->KD_WIL) }}] {{ trim($w->WILAYAH) }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        <!-- Peta Leaflet -->
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                 <div>
-                    <h4 style="margin:0;font-size:15px;font-weight:600;color:var(--ink);">📍 Lokasi Koordinat (Indonesia)</h4>
-                    <p style="margin:2px 0 0;font-size:12px;color:var(--muted);">Isi Lat/Long manual (copy-paste), ketik alamat di pencarian, klik pada peta, atau geser marker.</p>
+                    <b style="font-size:13px;color:#334155;">Titik Lokasi pada Peta:</b>
+                    <p style="margin:2px 0 0;font-size:11px;color:var(--muted);">Klik pada peta atau geser pin untuk memperbarui koordinat outlet.</p>
                 </div>
-                <button type="button" id="btn-geolocation" class="button button-soft" style="font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;">
-                    🎯 Lokasi Saya
+                <button type="button" id="btn-geolocation" class="button button-soft" style="font-size:11px;padding:5px 12px;border-radius:20px;cursor:pointer;">
+                    🎯 Ambil Lokasi Saya
                 </button>
             </div>
 
-            <!-- Modern Live Search Bar khusus Indonesia -->
-            <div style="position: relative; margin-bottom: 10px;">
-                <div style="position: relative; display: flex; align-items: center;">
-                    <span style="position: absolute; left: 16px; font-size: 15px; color: #94a3b8; pointer-events: none;">🔍</span>
-                    <input type="text" id="map-search-input" class="form-control map-search-input" placeholder="Cari nama jalan, toko, daerah, atau kota di Indonesia..." 
-                           style="border-radius: 30px; padding: 11px 40px 11px 44px; font-size: 13.5px; border: 1px solid #cbd5e1; background: #ffffff; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04); transition: all 0.2s ease;">
-                    <span id="search-spinner" style="position: absolute; right: 16px; display: none; font-size: 14px;">⌛</span>
-                </div>
-                <!-- Dropdown Hasil Pencarian Live -->
-                <div id="map-search-results" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 12px 28px rgba(0,0,0,0.12); z-index: 1000; max-height: 240px; overflow-y: auto; padding: 6px 0;"></div>
+            <!-- Search box peta -->
+            <div style="position:relative;margin-bottom:10px;">
+                <input type="text" id="map-search-input" placeholder="🔍 Cari lokasi atau alamat di peta..."
+                       style="width:100%;border-radius:8px;padding:8px 12px;font-size:12px;border:1px solid #cbd5e1;background:#fff;">
+                <div id="map-search-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border-radius:8px;border:1px solid #e2e8f0;box-shadow:0 8px 20px rgba(0,0,0,0.1);z-index:1000;max-height:180px;overflow-y:auto;padding:4px 0;"></div>
             </div>
 
             <div id="map"></div>
 
-            <!-- Input Manual Lat/Long -->
-            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:14px;margin-top:14px;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                    <span style="font-size:16px;">✏️</span>
-                    <span style="font-size:13px;font-weight:600;color:#0369a1;">Input Manual Latitude & Longitude</span>
+            <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;">
+                <div class="field" style="margin:0;">
+                    <label style="font-size:12px;">Latitude</label>
+                    <input type="text" name="latitude" id="latitude" value="{{ old('latitude', $customer->latitude) }}" placeholder="-7.9135..." readonly style="background:#f1f5f9;">
                 </div>
-                <p style="margin:0 0 10px;font-size:11.5px;color:#0284c7;">Copy-paste koordinat dari Google Maps atau sumber lain, lalu klik <strong>"Update Peta"</strong> untuk memperbarui lokasi di peta.</p>
-                <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 100px;gap:10px;align-items:end;">
-                    <div class="field" style="margin:0;">
-                        <label style="font-size:11.5px;color:#475569;">Latitude</label>
-                        <input type="text" id="manual-lat" class="form-control" placeholder="-6.2088" style="border-radius:8px;font-size:13px;">
-                    </div>
-                    <div class="field" style="margin:0;">
-                        <label style="font-size:11.5px;color:#475569;">Longitude</label>
-                        <input type="text" id="manual-lng" class="form-control" placeholder="106.8456" style="border-radius:8px;font-size:13px;">
-                    </div>
-                    <button type="button" id="btn-update-map" style="padding:10px 12px;background:#0284c7;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">Update Peta</button>
-                </div>
-            </div>
-
-            <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;">
-                <div class="field">
-                    <label style="font-size:12px;color:var(--muted);">Latitude (tersimpan)</label>
-                    <input type="text" id="latitude" name="latitude" class="form-control" value="{{ old('latitude', $customer->latitude) }}" placeholder="Contoh: -6.2088" readonly style="background:#f8fafc;border-radius:10px;">
-                </div>
-                <div class="field">
-                    <label style="font-size:12px;color:var(--muted);">Longitude (tersimpan)</label>
-                    <input type="text" id="longitude" name="longitude" class="form-control" value="{{ old('longitude', $customer->longitude) }}" placeholder="Contoh: 106.8456" readonly style="background:#f8fafc;border-radius:10px;">
+                <div class="field" style="margin:0;">
+                    <label style="font-size:12px;">Longitude</label>
+                    <input type="text" name="longitude" id="longitude" value="{{ old('longitude', $customer->longitude) }}" placeholder="113.8214..." readonly style="background:#f1f5f9;">
                 </div>
             </div>
         </div>
 
-        <div class="button-row" style="margin-top:24px;display:flex;gap:12px;">
-            <a href="{{ route('admin.customers.show', $customer->id) }}" class="button button-soft" style="flex:1;text-align:center;border-radius:10px;">Batal</a>
-            <button type="submit" class="button button-primary" style="flex:2;border-radius:10px;">Simpan Perubahan</button>
+        {{-- 4. SALES & KEBIJAKAN KREDIT --}}
+        <div class="form-section-title">
+            <span>💼</span> Sales & Kebijakan Kredit
+        </div>
+
+        <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+            <div class="field">
+                <label>Sales Penanggung Jawab (KD_PEG)</label>
+                <select name="kd_peg">
+                    <option value="">— Pilih Sales —</option>
+                    @foreach($salesList as $s)
+                        <option value="{{ $s->KD_PEG }}" {{ old('kd_peg', $customer->KD_PEG) == $s->KD_PEG ? 'selected' : '' }}>
+                            [{{ $s->KD_PEG }}] {{ $s->NM_PEG }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="field">
+                <label>Plafon Kredit (KRD_LIMIT)</label>
+                <input type="number" name="krd_limit" value="{{ old('krd_limit', $customer->credit_limit) }}" min="0" step="10000" placeholder="0">
+                <small style="color:var(--muted);font-size:11px;">Batas maksimal piutang (Rp).</small>
+            </div>
+            <div class="field">
+                <label>Tempo Pembayaran / TOP (TOP_LIMIT)</label>
+                <input type="number" name="top_limit" value="{{ old('top_limit', $customer->top_days) }}" min="0" max="999" placeholder="Hari (e.g. 30)">
+                <small style="color:var(--muted);font-size:11px;">Term of payment dalam jumlah hari.</small>
+            </div>
+        </div>
+
+        {{-- 5. PERPAJAKAN & REKENING BANK --}}
+        <div class="form-section-title">
+            <span>🏦</span> Informasi Perpajakan & Rekening Bank
+        </div>
+
+        <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+            <div class="field">
+                <label>NPWP</label>
+                <input type="text" name="npwp" value="{{ old('npwp', $customer->NPWP) }}" placeholder="xx.xxx.xxx.x-xxx.xxx" maxlength="27">
+            </div>
+            <div class="field">
+                <label>Nama PKP (NM_PKP)</label>
+                <input type="text" name="nm_pkp" value="{{ old('nm_pkp', $customer->NM_PKP) }}" placeholder="Nama PKP" maxlength="65">
+            </div>
+            <div class="field">
+                <label>Alamat PKP (ALM_PKP)</label>
+                <input type="text" name="alm_pkp" value="{{ old('alm_pkp', $customer->ALM_PKP) }}" placeholder="Alamat PKP" maxlength="65">
+            </div>
+        </div>
+
+        <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;">
+            <div class="field">
+                <label>Bank 1 (BANK1)</label>
+                <input type="text" name="bank1" value="{{ old('bank1', $customer->BANK1) }}" placeholder="BCA" maxlength="50">
+            </div>
+            <div class="field">
+                <label>No Rekening 1 (NO_REK1)</label>
+                <input type="text" name="no_rek1" value="{{ old('no_rek1', $customer->NO_REK1) }}" placeholder="1234567890" maxlength="14">
+            </div>
+            <div class="field">
+                <label>Bank 2 (BANK2)</label>
+                <input type="text" name="bank2" value="{{ old('bank2', $customer->BANK2) }}" placeholder="BRI" maxlength="50">
+            </div>
+            <div class="field">
+                <label>No Rekening 2 (NO_REK2)</label>
+                <input type="text" name="no_rek2" value="{{ old('no_rek2', $customer->NO_REK2) }}" placeholder="0987654321" maxlength="14">
+            </div>
+        </div>
+
+        <div class="button-row" style="margin-top:32px;display:flex;gap:12px;">
+            <a href="{{ route('admin.customers.show', $customer->KD_CUST) }}" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
+            <button type="submit" class="button button-primary" style="flex:2;">Simpan Perubahan Customer</button>
         </div>
     </form>
 </article>
-@endsection
 
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var defaultLat = {{ old('latitude', $customer->latitude ?? '-6.2088') }};
-        var defaultLng = {{ old('longitude', $customer->longitude ?? '106.8456') }};
-        var hasInitialValue = {{ ($customer->latitude || old('latitude')) ? 'true' : 'false' }};
+document.addEventListener('DOMContentLoaded', function () {
+    const savedLat = {{ old('latitude', $customer->latitude) ?? -7.9135 }};
+    const savedLng = {{ old('longitude', $customer->longitude) ?? 113.8214 }};
+    const hasInitialCoord = {{ (old('latitude', $customer->latitude) !== null) ? 'true' : 'false' }};
 
-        var map = L.map('map').setView([defaultLat, defaultLng], hasInitialValue ? 15 : 12);
+    const map = L.map('map').setView([savedLat, savedLng], hasInitialCoord ? 16 : 12);
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
 
-        var marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+    let marker;
 
-        function updatePosition(lat, lng) {
-            var formattedLat = parseFloat(lat).toFixed(8);
-            var formattedLng = parseFloat(lng).toFixed(8);
-            document.getElementById('latitude').value = formattedLat;
-            document.getElementById('longitude').value = formattedLng;
-        }
+    function setCoord(lat, lng) {
+        document.getElementById('latitude').value = Number(lat).toFixed(7);
+        document.getElementById('longitude').value = Number(lng).toFixed(7);
 
-        if (hasInitialValue) {
-            updatePosition(defaultLat, defaultLng);
-        }
-
-        // Event drag marker
-        marker.on('dragend', function (e) {
-            var position = marker.getLatLng();
-            updatePosition(position.lat, position.lng);
-        });
-
-        // Event klik di peta
-        map.on('click', function (e) {
-            marker.setLatLng(e.latlng);
-            updatePosition(e.latlng.lat, e.latlng.lng);
-        });
-
-        // Geolocation Button
-        document.getElementById('btn-geolocation').addEventListener('click', function () {
-            if (navigator.geolocation) {
-                this.disabled = true;
-                this.innerHTML = '⌛ Mengambil lokasi...';
-                
-                navigator.geolocation.getCurrentPosition(function (position) {
-                    var lat = position.coords.latitude;
-                    var lng = position.coords.longitude;
-                    
-                    map.setView([lat, lng], 16);
-                    marker.setLatLng([lat, lng]);
-                    updatePosition(lat, lng);
-
-                    var btn = document.getElementById('btn-geolocation');
-                    btn.disabled = false;
-                    btn.innerHTML = '🎯 Lokasi Saya';
-                }, function (error) {
-                    Swal.fire({ icon: 'error', title: 'Gagal Mengambil Lokasi', text: error.message });
-                    var btn = document.getElementById('btn-geolocation');
-                    btn.disabled = false;
-                    btn.innerHTML = '🎯 Lokasi Saya';
-                });
-            } else {
-                Swal.fire({ icon: 'warning', title: 'Tidak Didukung', text: 'Browser Anda tidak mendukung geolokasi.' });
-            }
-        });
-
-        // Fitur Update Peta dari Input Manual Lat/Long
-        function updateMapFromManualInput() {
-            var latInput = document.getElementById('manual-lat');
-            var lngInput = document.getElementById('manual-lng');
-            var lat = parseFloat(latInput.value);
-            var lng = parseFloat(lngInput.value);
-
-            if (isNaN(lat) || isNaN(lng)) {
-                Swal.fire({ icon: 'warning', title: 'Input Tidak Valid', text: 'Mohon masukkan Latitude dan Longitude yang valid (angka).' });
-                return;
-            }
-
-            if (lat < -90 || lat > 90) {
-                Swal.fire({ icon: 'warning', title: 'Latitude Tidak Valid', text: 'Latitude harus antara -90 sampai 90.' });
-                return;
-            }
-
-            if (lng < -180 || lng > 180) {
-                Swal.fire({ icon: 'warning', title: 'Longitude Tidak Valid', text: 'Longitude harus antara -180 sampai 180.' });
-                return;
-            }
-
-            map.setView([lat, lng], 16);
+        if (marker) {
             marker.setLatLng([lat, lng]);
-            updatePosition(lat, lng);
+        } else {
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            marker.on('dragend', function (e) {
+                const pos = e.target.getLatLng();
+                setCoord(pos.lat, pos.lng);
+            });
+        }
+    }
+
+    if (hasInitialCoord) {
+        setCoord(savedLat, savedLng);
+    }
+
+    map.on('click', function (e) {
+        setCoord(e.latlng.lat, e.latlng.lng);
+    });
+
+    // Geolocation
+    document.getElementById('btn-geolocation').addEventListener('click', function () {
+        if (!navigator.geolocation) {
+            alert('Browser tidak mendukung geolokasi.');
+            return;
+        }
+        this.textContent = '⌛ Mencari lokasi...';
+        navigator.geolocation.getCurrentPosition(
+            function (pos) {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                map.setView([lat, lng], 16);
+                setCoord(lat, lng);
+                document.getElementById('btn-geolocation').textContent = '🎯 Lokasi Saya';
+            },
+            function () {
+                alert('Gagal mendapatkan lokasi GPS saat ini.');
+                document.getElementById('btn-geolocation').textContent = '🎯 Lokasi Saya';
+            },
+            { enableHighAccuracy: true }
+        );
+    });
+
+    // Map Search
+    let searchTimeout;
+    const searchInput = document.getElementById('map-search-input');
+    const searchResults = document.getElementById('map-search-results');
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        if (query.length < 3) {
+            searchResults.style.display = 'none';
+            return;
         }
 
-        document.getElementById('btn-update-map').addEventListener('click', updateMapFromManualInput);
-
-        // Enter key pada input manual juga trigger update
-        document.getElementById('manual-lat').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                updateMapFromManualInput();
-            }
-        });
-        document.getElementById('manual-lng').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                updateMapFromManualInput();
-            }
-        });
-
-        // Fitur Live Search khusus Indonesia (countrycodes=id)
-        var searchInput = document.getElementById('map-search-input');
-        var searchResults = document.getElementById('map-search-results');
-        var searchSpinner = document.getElementById('search-spinner');
-        var searchTimeout = null;
-
-        function performSearch(query) {
-            if (!query || query.trim().length < 2) {
-                searchResults.style.display = 'none';
-                searchResults.innerHTML = '';
-                return;
-            }
-
-            searchSpinner.style.display = 'block';
-
-            fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=id&q=' + encodeURIComponent(query) + '&limit=5')
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    searchSpinner.style.display = 'none';
+        searchTimeout = setTimeout(() => {
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=id&limit=5&q=${encodeURIComponent(query)}`)
+                .then(r => r.json())
+                .then(data => {
                     searchResults.innerHTML = '';
-
-                    if (data && data.length > 0) {
-                        data.forEach(function(item) {
-                            var el = document.createElement('div');
-                            el.style.cssText = 'padding: 10px 18px; font-size: 13px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease; color: #1e293b;';
-                            var title = item.display_name.split(',')[0];
-                            el.innerHTML = '<div style="font-weight: 600; color: #0f172a;">' + title + '</div>' +
-                                           '<div style="font-size: 11px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + item.display_name + '</div>';
-                            
-                            el.addEventListener('mouseenter', function() { el.style.background = '#f1f5f9'; });
-                            el.addEventListener('mouseleave', function() { el.style.background = '#ffffff'; });
-                            
-                            el.addEventListener('click', function() {
-                                var lat = parseFloat(item.lat);
-                                var lon = parseFloat(item.lon);
-                                map.setView([lat, lon], 16);
-                                marker.setLatLng([lat, lon]);
-                                updatePosition(lat, lon);
-                                searchInput.value = title;
-                                searchResults.style.display = 'none';
-                            });
-
-                            searchResults.appendChild(el);
-                        });
+                    if (!data || data.length === 0) {
+                        searchResults.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:var(--muted);">Lokasi tidak ditemukan.</div>';
                         searchResults.style.display = 'block';
-                    } else {
-                        searchResults.style.display = 'none';
+                        return;
                     }
+                    data.forEach(item => {
+                        const div = document.createElement('div');
+                        div.style.cssText = 'padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid #f1f5f9;';
+                        div.textContent = item.display_name;
+                        div.addEventListener('click', function () {
+                            const lat = parseFloat(item.lat);
+                            const lng = parseFloat(item.lon);
+                            map.setView([lat, lng], 16);
+                            setCoord(lat, lng);
+                            searchResults.style.display = 'none';
+                            searchInput.value = item.display_name.split(',')[0];
+                        });
+                        searchResults.appendChild(div);
+                    });
+                    searchResults.style.display = 'block';
                 })
-                .catch(function() {
-                    searchSpinner.style.display = 'none';
+                .catch(() => {
                     searchResults.style.display = 'none';
                 });
-        }
-
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            var query = this.value;
-            searchTimeout = setTimeout(function() {
-                performSearch(query);
-            }, 400);
-        });
-
-        searchInput.addEventListener('change', function() {
-            clearTimeout(searchTimeout);
-            performSearch(this.value);
-        });
-
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                clearTimeout(searchTimeout);
-                performSearch(this.value);
-            }
-        });
-
-        document.addEventListener('click', function(e) {
-            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-                searchResults.style.display = 'none';
-            }
-        });
+        }, 400);
     });
+
+    document.addEventListener('click', function (e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = 'none';
+        }
+    });
+});
 </script>
 @endpush
+@endsection

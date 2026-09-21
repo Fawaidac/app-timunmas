@@ -3,160 +3,116 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
-use App\Models\Payment;
-use App\Models\SalesOrder;
-use App\Models\SalesVisit;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Laporan sales — sumber: KUNJUNGAN (web), MST_ORD_JUAL, PAYMENT (web).
+ */
 class LaporanController extends Controller
 {
     public function index()
     {
-        $salesId = auth()->id();
-        $currentMonth = now()->month;
-        $currentYear = now()->year;
+        $kdPeg = auth()->user()->KD_PEG;
+        $m = (int) now()->month;
+        $y = (int) now()->year;
+        $pegFilter = $kdPeg
+            ? " AND KD_PEG = '" . addcslashes($kdPeg, "'") . "'"
+            : ' AND 1=0';
 
-        // ---------------------------------------------------------------------
-        // 1. STATISTIK UTAMA (METRICS)
-        // ---------------------------------------------------------------------
+        // 1. Kunjungan bulan ini
+        $totalVisits = (int) DB::selectOne("
+            SELECT COUNT(*) AS JML FROM KUNJUNGAN
+            WHERE EXTRACT(MONTH FROM TANGGAL) = {$m}
+              AND EXTRACT(YEAR FROM TANGGAL) = {$y}
+              {$pegFilter}
+        ")->JML;
 
-        // Total Kunjungan Sales Bulan Ini
-        $totalVisits = SalesVisit::where('sales_id', $salesId)
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereMonth('visit_date', $currentMonth)
-                  ->whereYear('visit_date', $currentYear)
-                  ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                      $sq->whereMonth('created_at', $currentMonth)
-                         ->whereYear('created_at', $currentYear);
-                  });
-            })->count();
+        $completedVisits = (int) DB::selectOne("
+            SELECT COUNT(*) AS JML FROM KUNJUNGAN
+            WHERE STATUS = 'completed'
+              AND EXTRACT(MONTH FROM TANGGAL) = {$m}
+              AND EXTRACT(YEAR FROM TANGGAL) = {$y}
+              {$pegFilter}
+        ")->JML;
 
-        // Kunjungan Selesai (Completed / Selesai)
-        $completedVisits = SalesVisit::where('sales_id', $salesId)
-            ->whereIn('status', ['selesai', 'completed'])
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereMonth('visit_date', $currentMonth)
-                  ->whereYear('visit_date', $currentYear)
-                  ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                      $sq->whereMonth('created_at', $currentMonth)
-                         ->whereYear('created_at', $currentYear);
-                  });
-            })->count();
-
-        // 1. Produktivitas Kunjungan (% Kunjungan Selesai dari Total Jadwal)
         $productivity = $totalVisits > 0 ? round(($completedVisits / $totalVisits) * 100) : 0;
 
-        // 2. Strike Rate (% Kunjungan Selesai yang Memiliki Sales Order)
-        $visitWithOrderCount = SalesVisit::where('sales_id', $salesId)
-            ->whereHas('order')
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereMonth('visit_date', $currentMonth)
-                  ->whereYear('visit_date', $currentYear)
-                  ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                      $sq->whereMonth('created_at', $currentMonth)
-                         ->whereYear('created_at', $currentYear);
-                  });
-            })->count();
+        // 2. Strike rate: kunjungan completed yang punya order
+        $visitWithOrderCount = (int) DB::selectOne("
+            SELECT COUNT(*) AS JML FROM KUNJUNGAN
+            WHERE STATUS = 'completed' AND NO_ENT_ORD IS NOT NULL
+              AND EXTRACT(MONTH FROM TANGGAL) = {$m}
+              AND EXTRACT(YEAR FROM TANGGAL) = {$y}
+              {$pegFilter}
+        ")->JML;
 
         $strikeRate = $completedVisits > 0 ? round(($visitWithOrderCount / $completedVisits) * 100) : 0;
 
-        // 3. Average Order Value (AOV Sales Ini)
-        $salesOrdersQuery = SalesOrder::where('sales_id', $salesId)
-            ->where('status', 'approved')
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereMonth('order_date', $currentMonth)
-                  ->whereYear('order_date', $currentYear)
-                  ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                      $sq->whereMonth('created_at', $currentMonth)
-                         ->whereYear('created_at', $currentYear);
-                  });
-            });
-
-        $totalOrderCount = $salesOrdersQuery->count();
-        $totalOrderAmount = $salesOrdersQuery->sum('total_amount');
+        // 3. AOV: order bulan ini (MST_ORD_JUAL)
+        $agg = DB::selectOne("
+            SELECT COUNT(*) AS JML, COALESCE(SUM(TOTAL), 0) AS TOTAL
+            FROM MST_ORD_JUAL
+            WHERE ST_JADI <> 'BATAL'
+              AND EXTRACT(MONTH FROM TANGGAL) = {$m}
+              AND EXTRACT(YEAR FROM TANGGAL) = {$y}
+              {$pegFilter}
+        ");
+        $totalOrderCount = (int) $agg->JML;
+        $totalOrderAmount = (float) $agg->TOTAL;
         $averageOrder = $totalOrderCount > 0 ? ($totalOrderAmount / $totalOrderCount) : 0;
 
-        // 4. Collection Rate (% Pembayaran Approved vs Total Nilai Order)
-        $totalApprovedPayments = Payment::where('sales_id', $salesId)
-            ->where('status', 'approved')
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereMonth('approved_at', $currentMonth)
-                  ->whereYear('approved_at', $currentYear)
-                  ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                      $sq->whereNull('approved_at')
-                         ->whereMonth('created_at', $currentMonth)
-                         ->whereYear('created_at', $currentYear);
-                  });
-            })->sum('amount_paid');
+        // 4. Collection rate (PAYMENT web)
+        $totalApprovedPayments = (float) DB::selectOne("
+            SELECT COALESCE(SUM(JUMLAH), 0) AS TOTAL FROM PAYMENT
+            WHERE STATUS = 'approved'
+              AND EXTRACT(MONTH FROM COALESCE(TGL_APPROVE, TANGGAL)) = {$m}
+              AND EXTRACT(YEAR FROM COALESCE(TGL_APPROVE, TANGGAL)) = {$y}
+              {$pegFilter}
+        ")->TOTAL;
 
         $collectionRate = $totalOrderAmount > 0 ? round(($totalApprovedPayments / $totalOrderAmount) * 100) : 0;
 
-        // ---------------------------------------------------------------------
-        // 2. GRAFIK 1: TREN PENJUALAN MINGGUAN (4 MINGGU BULAN INI)
-        // ---------------------------------------------------------------------
+        // 5. Tren mingguan
         $weeklySalesLabels = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'];
         $weeklySalesData = [0, 0, 0, 0];
 
-        $ordersThisMonth = SalesOrder::where('sales_id', $salesId)
-            ->where('status', 'approved')
-            ->whereMonth('order_date', $currentMonth)
-            ->whereYear('order_date', $currentYear)
-            ->get();
-
-        foreach ($ordersThisMonth as $order) {
-            $orderDate = Carbon::parse($order->order_date ?? $order->created_at);
-            $weekNumber = ceil($orderDate->day / 7);
-            if ($weekNumber >= 1 && $weekNumber <= 4) {
-                $weeklySalesData[$weekNumber - 1] += (float) $order->total_amount;
+        foreach (DB::select("
+            SELECT TANGGAL, TOTAL FROM MST_ORD_JUAL
+            WHERE ST_JADI <> 'BATAL'
+              AND EXTRACT(MONTH FROM TANGGAL) = {$m}
+              AND EXTRACT(YEAR FROM TANGGAL) = {$y}
+              {$pegFilter}
+        ") as $row) {
+            $w = (int) ceil(Carbon::parse($row->TANGGAL)->day / 7);
+            if ($w >= 1 && $w <= 4) {
+                $weeklySalesData[$w - 1] += (float) $row->TOTAL;
             }
         }
 
-        // ---------------------------------------------------------------------
-        // 3. GRAFIK 2: KOMPOSISI TUJUAN KUNJUNGAN (PURPOSE)
-        // ---------------------------------------------------------------------
-        $purposeCounts = SalesVisit::where('sales_id', $salesId)
-            ->where(function ($q) use ($currentMonth, $currentYear) {
-                $q->whereMonth('visit_date', $currentMonth)
-                  ->whereYear('visit_date', $currentYear)
-                  ->orWhere(function ($sq) use ($currentMonth, $currentYear) {
-                      $sq->whereMonth('created_at', $currentMonth)
-                         ->whereYear('created_at', $currentYear);
-                  });
-            })
-            ->select('purpose', DB::raw('count(*) as TOTAL'))
-            ->groupBy('purpose')
-            ->pluck('TOTAL', 'purpose')
-            ->toArray();
-
-        // Pemetaan Label
-        $purposeLabels = [
-            'order'         => 'Order Barang',
-            'collection'    => 'Penagihan',
-            'merchandising' => 'Merchandising',
-        ];
+        // 6. Komposisi tujuan kunjungan
+        $purposeCounts = [];
+        foreach (DB::select("
+            SELECT TUJUAN, COUNT(*) AS TOTAL FROM KUNJUNGAN
+            WHERE EXTRACT(MONTH FROM TANGGAL) = {$m}
+              AND EXTRACT(YEAR FROM TANGGAL) = {$y}
+              {$pegFilter}
+            GROUP BY TUJUAN
+        ") as $row) {
+            $purposeCounts[$row->TUJUAN] = (int) $row->TOTAL;
+        }
 
         $chartPurposeLabels = [];
         $chartPurposeData = [];
-
-        foreach ($purposeLabels as $key => $label) {
+        foreach (['order' => 'Order Barang', 'collection' => 'Penagihan', 'merchandising' => 'Merchandising'] as $key => $label) {
             $chartPurposeLabels[] = $label;
             $chartPurposeData[] = $purposeCounts[$key] ?? 0;
         }
 
         return view('sales.laporan.index', compact(
-            'productivity',
-            'completedVisits',
-            'totalVisits',
-            'strikeRate',
-            'visitWithOrderCount',
-            'averageOrder',
-            'totalOrderCount',
-            'collectionRate',
-            'weeklySalesLabels',
-            'weeklySalesData',
-            'chartPurposeLabels',
-            'chartPurposeData'
+            'productivity', 'completedVisits', 'totalVisits', 'strikeRate',
+            'visitWithOrderCount', 'averageOrder', 'totalOrderCount', 'collectionRate',
+            'weeklySalesLabels', 'weeklySalesData', 'chartPurposeLabels', 'chartPurposeData'
         ));
     }
 }

@@ -2,80 +2,12 @@
 
 @section('title', 'User Management - Admin')
 @section('page_title', 'User Management')
-@section('page_description', 'Kelola pengguna sistem dan hak akses')
-
-@push('styles')
-<style>
-/* Style Pagination Modern */
-.pagination-wrapper {
-    margin-top: 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #e2e8f0;
-}
-
-.pagination-info {
-    font-size: 13px;
-    color: #64748b;
-}
-
-.pagination-container {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.pagination-container .page-item .page-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 36px;
-    height: 36px;
-    padding: 0 10px;
-    border-radius: 8px;
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    color: #334155;
-    font-size: 13px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s ease-in-out;
-}
-
-.pagination-container .page-item .page-link:hover {
-    border-color: #f97316;
-    color: #ea580c;
-    background-color: #fff7ed;
-}
-
-.pagination-container .page-item.active .page-link {
-    background-color: #f97316;
-    border-color: #f97316;
-    color: #ffffff;
-    box-shadow: 0 2px 4px rgba(249, 115, 22, 0.25);
-}
-
-.pagination-container .page-item.disabled .page-link {
-    background-color: #f8fafc;
-    border-color: #e2e8f0;
-    color: #cbd5e1;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-</style>
-@endpush
+@section('page_description', 'Kelola akun Admin (MST_PENGGUNA) dan Sales (PEGAWAI)')
 
 @section('content')
 <div class="section-head">
     <h2>User Management</h2>
-    <p>Kelola akun pengguna, peran (role), dan wilayah operasional.</p>
+    <p>Akun <strong>Admin</strong> dari <code>MST_PENGGUNA</code> · Akun <strong>Sales</strong> dari <code>PEGAWAI</code></p>
 </div>
 
 @if(session('success'))
@@ -89,15 +21,17 @@
     </div>
 @endif
 
-<!-- Toolbar Pencarian Server-Side -->
 <div class="toolbar">
-    <form action="{{ route('admin.users.index') }}" method="GET" style="flex: 1; max-width: 400px;">
+    <form action="{{ route('admin.users.index') }}" method="GET" style="flex: 1; max-width: 420px;">
         <label class="search-box" style="width: 100%;">
             <span>⌕</span>
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama, email, role, atau wilayah..." onchange="this.form.submit()">
+            <input type="search" name="search" value="{{ $search ?? '' }}" placeholder="Cari username, kode, nama, kontak, alamat..." onchange="this.form.submit()">
         </label>
     </form>
-    <a href="{{ route('admin.users.create') }}" class="button button-primary">＋ Tambah User</a>
+    <div style="display:flex;gap:8px;">
+        <a href="{{ route('admin.users.create.admin') }}" class="button button-soft">＋ Admin Baru</a>
+        <a href="{{ route('admin.users.create.sales') }}" class="button button-primary">＋ Pegawai Sales</a>
+    </div>
 </div>
 
 <article class="card">
@@ -105,45 +39,108 @@
         <table id="userTable">
             <thead>
                 <tr>
-                    <th>Nama</th>
-                    <th>Email</th>
+                    <th>Nama & Akun</th>
+                    <th>Sumber Tabel</th>
                     <th>Role</th>
-                    <th>Wilayah</th>
-                    <th>Telepon</th>
+                    <th>Kontak (HP/Email)</th>
+                    <th>Alamat & Wilayah</th>
+                    <th>Status Login</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($users as $user)
+                @forelse($users as $u)
                     <tr>
                         <td>
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <div style="width:32px;height:32px;background:linear-gradient(135deg,#fff7ed,#fed7aa);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--orange-600);">
-                                    {{ strtoupper(substr($user->name, 0, 1)) }}
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:linear-gradient(135deg,{{ $u['role'] === 'admin' ? '#dbeafe,#bfdbfe' : '#fff7ed,#fed7aa' }});color:{{ $u['role'] === 'admin' ? '#1d4ed8' : '#c2410c' }};">
+                                    {{ strtoupper(substr($u['nama'], 0, 1)) }}
                                 </div>
-                                <b>{{ $user->name }}</b>
-                                @if($user->id === auth()->id())
-                                    <span style="background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:20px;font-size:10px;">Saya</span>
-                                @endif
+                                <div>
+                                    <div style="font-weight:700;font-size:14px;color:#1e293b;">
+                                        {{ $u['nama'] }}
+                                        @if($u['source'] === 'admin' && $u['id'] == auth()->guard('web')->id())
+                                            <span style="background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:20px;font-size:10px;margin-left:4px;font-weight:600;">Saya</span>
+                                        @endif
+                                    </div>
+                                    <div style="font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center;">
+                                        @if($u['kd_peg'])
+                                            <span>KD: <code>{{ $u['kd_peg'] }}</code></span>
+                                        @endif
+                                        @if($u['source'] === 'admin')
+                                            <span>User: <code>{{ $u['username'] }}</code></span>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
                         </td>
-                        <td>{{ $user->email }}</td>
                         <td>
-                            <span class="badge {{ $user->role === 'admin' ? 'badge-success' : 'badge-orange' }}">
-                                {{ ucfirst($user->role) }}
+                            @if($u['source'] === 'admin')
+                                <span style="background:#eff6ff;color:#1d4ed8;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;">MST_PENGGUNA</span>
+                            @else
+                                <span style="background:#fff7ed;color:#c2410c;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;">PEGAWAI</span>
+                            @endif
+                        </td>
+                        <td>
+                            <span class="badge {{ $u['role'] === 'admin' ? 'badge-success' : 'badge-orange' }}">
+                                {{ ucfirst($u['role']) }}
                             </span>
                         </td>
-                        <td>{{ $user->area ?? '-' }}</td>
-                        <td>{{ $user->phone ?? '-' }}</td>
                         <td>
-                            <div style="display:flex;gap:6px;">
-                                <a href="{{ route('admin.users.show', $user->id) }}" class="button button-soft" style="padding:6px 10px;font-size:11px;">Detail</a>
-                                <a href="{{ route('admin.users.edit', $user->id) }}" class="button button-soft" style="padding:6px 10px;font-size:11px;">Edit</a>
-                                @if($user->id !== auth()->id())
-                                    <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirmAction(event, this, 'Hapus Pengguna', 'Pengguna ini akan dihapus permanen.');">
+                            @if($u['hp'] || $u['e_mail'])
+                                <div style="font-size:12px;display:flex;flex-direction:column;gap:2px;">
+                                    @if($u['hp'])
+                                        <div><span style="color:var(--muted);">📱</span> {{ $u['hp'] }}</div>
+                                    @endif
+                                    @if($u['e_mail'])
+                                        <div style="color:var(--muted);font-size:11px;"><span style="color:var(--muted);">✉</span> {{ $u['e_mail'] }}</div>
+                                    @endif
+                                </div>
+                            @else
+                                <span style="color:var(--muted);font-size:12px;">—</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($u['alm_peg'] || $u['kd_wil'])
+                                <div style="font-size:12px;max-width:220px;line-height:1.3;">
+                                    @if($u['alm_peg'])
+                                        <div>{{ $u['alm_peg'] }}</div>
+                                    @endif
+                                    @if($u['kd_wil'])
+                                        <span style="display:inline-block;background:#f1f5f9;color:#475569;font-size:10px;padding:1px 5px;border-radius:4px;margin-top:2px;">
+                                            Wilayah: {{ $u['kd_wil'] }}
+                                        </span>
+                                    @endif
+                                </div>
+                            @else
+                                <span style="color:var(--muted);font-size:12px;">—</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($u['has_password'])
+                                <span style="display:inline-flex;align-items:center;gap:4px;color:#16a34a;font-size:12px;font-weight:600;">
+                                    <span>✔</span> Aktif
+                                </span>
+                            @else
+                                <span style="display:inline-flex;align-items:center;gap:4px;color:#dc2626;font-size:12px;font-weight:500;">
+                                    <span>✖</span> Belum ada password
+                                </span>
+                            @endif
+                        </td>
+                        <td>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <a href="{{ route('admin.users.edit', $u['id']) }}?source={{ $u['source'] }}"
+                                   class="button button-soft" style="padding:6px 10px;font-size:11px;">Edit</a>
+
+                                @if(!($u['source'] === 'admin' && $u['id'] == auth()->guard('web')->id()))
+                                    <form action="{{ route('admin.users.destroy', $u['id']) }}" method="POST"
+                                          onsubmit="return confirm('{{ $u['source'] === 'sales' ? 'Cabut akses login sales ini?' : 'Hapus akun admin ini?' }}')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" style="padding:6px 10px;font-size:11px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;cursor:pointer;">Hapus</button>
+                                        <input type="hidden" name="source" value="{{ $u['source'] }}">
+                                        <button type="submit" style="padding:6px 10px;font-size:11px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;cursor:pointer;">
+                                            {{ $u['source'] === 'sales' ? 'Cabut' : 'Hapus' }}
+                                        </button>
                                     </form>
                                 @endif
                             </div>
@@ -151,8 +148,8 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" style="text-align:center;padding:40px;color:var(--muted);">
-                            Belum ada data pengguna.
+                        <td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">
+                            Tidak ada data pengguna.
                         </td>
                     </tr>
                 @endforelse
@@ -160,39 +157,7 @@
         </table>
     </div>
 
-    <!-- SECTION PAGINATION -->
-    @if($users->hasPages())
-        <div class="pagination-wrapper">
-            <div class="pagination-info">
-                Menampilkan <b>{{ $users->firstItem() }}</b> - <b>{{ $users->lastItem() }}</b> dari total <b>{{ $users->total() }}</b> pengguna
-            </div>
-
-            <ul class="pagination-container">
-                {{-- Tombol Previous --}}
-                @if ($users->onFirstPage())
-                    <li class="page-item disabled"><span class="page-link">‹</span></li>
-                @else
-                    <li class="page-item"><a class="page-link" href="{{ $users->previousPageUrl() }}" rel="prev">‹</a></li>
-                @endif
-
-                {{-- Angka Halaman --}}
-                @foreach ($users->getUrlRange(1, $users->lastPage()) as $page => $url)
-                    @if ($page == $users->currentPage())
-                        <li class="page-item active"><span class="page-link">{{ $page }}</span></li>
-                    @else
-                        <li class="page-item"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>
-                    @endif
-                @endforeach
-
-                {{-- Tombol Next --}}
-                @if ($users->hasMorePages())
-                    <li class="page-item"><a class="page-link" href="{{ $users->nextPageUrl() }}" rel="next">›</a></li>
-                @else
-                    <li class="page-item disabled"><span class="page-link">›</span></li>
-                @endif
-            </ul>
-        </div>
-    @endif
+    @include('partials.pagination', ['paginator' => $users, 'itemLabel' => 'pengguna'])
 </article>
 
 @endsection

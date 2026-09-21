@@ -3,40 +3,67 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\SalesHelper;
 use App\Http\Requests\Sales\StoreVisitRequest;
 use App\Http\Requests\Sales\CheckinVisitRequest;
 use App\Models\SalesVisit;
 use App\Models\Customer;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * Kunjungan sales -> tabel KUNJUNGAN (baru, khusus web).
+ * Sales = kolom KD_PEG (tabel PEGAWAI), sesuai keputusan pemilik sistem.
+ */
 class VisitController extends Controller
 {
-    public function index()
+    private function salesKdPeg(): ?string
     {
-        $visits = SalesVisit::with(['customer', 'sales'])
-            ->where('sales_id', auth()->id())
-            ->orderBy('created_at', 'desc')
-            ->get();
+        return SalesHelper::kdPeg();
+    }
+
+    private function scoped()
+    {
+        return SalesVisit::when(
+            $this->salesKdPeg(),
+            fn ($q, $p) => $q->where('KD_PEG', $p),
+            fn ($q) => $q->whereRaw('1=0')
+        );
+    }
+
+    public function index(Request $request)
+    {
+        $visits = $this->scoped()->with('customer')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $s = strtoupper($request->search);
+                $q->whereHas('customer', fn ($cq) => $cq->whereRaw('UPPER(NM_CUST) LIKE ?', ["%{$s}%"]));
+            })
+            ->orderBy('TANGGAL', 'desc')
+            ->orderBy('NOMOR', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('sales.kunjungan.index', compact('visits'));
     }
 
     public function create()
     {
-        $customers = Customer::orderBy('name')->get();
+        $kdPeg = $this->salesKdPeg();
+        $customers = Customer::when($kdPeg, fn($q, $p) => $q->where('KD_PEG', $p))
+            ->orderBy('NM_CUST')
+            ->get();
+
         return view('sales.kunjungan.create', compact('customers'));
     }
 
     public function store(StoreVisitRequest $request)
     {
-        $visit = SalesVisit::create([
-            'sales_id'    => auth()->id(),
-            'customer_id' => $request->customer_id,
-            'visit_date'  => $request->visit_date,
-            'purpose'     => $request->purpose,
-            'notes'       => $request->notes,
-            'status'      => 'scheduled',
+        SalesVisit::create([
+            'KD_PEG'  => $this->salesKdPeg(),
+            'KD_CUST' => $request->customer_id,
+            'TANGGAL' => $request->visit_date,
+            'TUJUAN'  => $request->purpose,
+            'CATATAN' => $request->notes,
+            'STATUS'  => 'scheduled',
         ]);
 
         return redirect()->route('sales.kunjungan.index')
@@ -45,45 +72,46 @@ class VisitController extends Controller
 
     public function show($id)
     {
-        $visit = SalesVisit::with(['customer', 'sales', 'order.items.product'])
-            ->where('sales_id', auth()->id())
-            ->findOrFail($id);
+        $visit = $this->scoped()->with(['customer', 'order.items.product'])
+            ->where('NOMOR', $id)->firstOrFail();
 
         return view('sales.kunjungan.show', compact('visit'));
     }
 
     public function edit($id)
     {
-        $visit = SalesVisit::with('customer')
-            ->where('sales_id', auth()->id())
-            ->findOrFail($id);
+        $visit = $this->scoped()->with('customer')
+            ->where('NOMOR', $id)->firstOrFail();
 
         return view('sales.kunjungan.edit', compact('visit'));
     }
 
     public function update(Request $request, $id)
     {
-        $visit = SalesVisit::where('sales_id', auth()->id())->findOrFail($id);
+        $visit = $this->scoped()->where('NOMOR', $id)->firstOrFail();
 
         $validated = $request->validate([
             'purpose' => 'required|in:merchandising,collection,order',
-            'status' => 'required|in:scheduled,in_progress,completed,cancelled',
-            'notes' => 'nullable|string|max:500'
+            'status'  => 'required|in:scheduled,in_progress,completed,cancelled',
+            'notes'   => 'nullable|string|max:500',
         ]);
 
-        $visit->update($validated);
+        $visit->update([
+            'TUJUAN'  => $validated['purpose'],
+            'STATUS'  => $validated['status'],
+            'CATATAN' => $validated['notes'] ?? $visit->CATATAN,
+        ]);
 
-        return redirect()->route('sales.kunjungan.show', $visit->id)
+        return redirect()->route('sales.kunjungan.show', $visit->NOMOR)
             ->with('success', 'Kunjungan berhasil diupdate.');
     }
 
     public function destroy($id)
     {
-        $visit = SalesVisit::where('sales_id', auth()->id())->findOrFail($id);
-        
-        // Check if visit has order
+        $visit = $this->scoped()->where('NOMOR', $id)->firstOrFail();
+
         if ($visit->order) {
-            return redirect()->route('sales.kunjungan.show', $visit->id)
+            return redirect()->route('sales.kunjungan.show', $visit->NOMOR)
                 ->with('error', 'Tidak dapat menghapus kunjungan yang sudah memiliki order.');
         }
 
@@ -95,89 +123,47 @@ class VisitController extends Controller
 
     public function checkin($id)
     {
-        $visit = SalesVisit::with('customer')
-            ->where('sales_id', auth()->id())
-            ->where('status', 'scheduled')
-            ->findOrFail($id);
+        $visit = $this->scoped()->with('customer')
+            ->where('NOMOR', $id)
+            ->where('STATUS', 'scheduled')
+            ->firstOrFail();
 
         return view('sales.checkin.index', compact('visit'));
     }
 
     public function storeCheckin(CheckinVisitRequest $request, $id)
     {
-        $visit = SalesVisit::where('sales_id', auth()->id())
-            ->where('status', 'scheduled')
-            ->findOrFail($id);
-
-        $customer = $visit->customer;
-
-        // Hitung jarak dari koordinat customer (jika ada)
-        $distance = null;
-        if ($customer->latitude && $customer->longitude) {
-            $distance = $this->calculateDistance(
-                $request->checkin_latitude,
-                $request->checkin_longitude,
-                $customer->latitude,
-                $customer->longitude
-            );
-        }
-
-        // Radius check: 100 meters
-        if ($distance !== null && $distance > 50) {
-             return back()->with('error', 'Lokasi Anda terlalu jauh dari customer (' . round($distance) . ' meter). Jarak maksimal adalah 100 meter.');
-        }
-
-        // Bulatkan koordinat untuk menghindari masalah presisi di Firebird
-        $checkinLat = round($request->checkin_latitude, 8);
-        $checkinLng = round($request->checkin_longitude, 8);
+        $visit = $this->scoped()
+            ->where('NOMOR', $id)
+            ->where('STATUS', 'scheduled')
+            ->firstOrFail();
 
         $visit->update([
-            'checkin_time'      => now(),
-            'checkin_latitude'  => $checkinLat,
-            'checkin_longitude' => $checkinLng,
-            'distance_meters'   => $distance !== null ? round($distance, 2) : null,
-            'status'            => 'in_progress',
+            'JAM_CHECKIN' => now()->format('Y-m-d H:i:s'),
+            'LAT_CHECKIN' => round((float) $request->checkin_latitude, 8),
+            'LON_CHECKIN' => round((float) $request->checkin_longitude, 8),
+            'JARAK_M'     => null,
+            'STATUS'      => 'in_progress',
         ]);
 
-        return redirect()->route('sales.kunjungan.show', $visit->id)
-            ->with('success', 'Check-in berhasil. Jarak dari customer: ' . ($distance ? round($distance) . ' meter' : 'tidak diketahui'));
+        return redirect()->route('sales.kunjungan.show', $visit->NOMOR)
+            ->with('success', 'Check-in berhasil dicatat.');
     }
 
     public function createOrder($id)
     {
-        $visit = SalesVisit::with('customer', 'order')
-            ->where('sales_id', auth()->id())
-            ->where('status', 'in_progress')
-            ->findOrFail($id);
+        $visit = $this->scoped()->with('customer', 'order')
+            ->where('NOMOR', $id)
+            ->where('STATUS', 'in_progress')
+            ->firstOrFail();
 
-        // Cek apakah visit sudah punya order
         if ($visit->order) {
-            return redirect()->route('sales.order.show', $visit->order->id)
+            return redirect()->route('sales.order.show', $visit->order->NO_ENT)
                 ->with('success', 'Kunjungan ini sudah memiliki sales order.');
         }
 
-        $products = \App\Models\Product::with('warehouses')->orderBy('name')->get();
+        $products = \App\Models\Product::orderBy('NM_BRG')->get();
 
         return view('sales.order.create', compact('visit', 'products'));
-    }
-
-    /**
-     * Hitung jarak antar 2 koordinat GPS (Haversine formula)
-     * Return dalam meter
-     */
-    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
-    {
-        $earthRadius = 6371000; // meter
-
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-             sin($dLon / 2) * sin($dLon / 2);
-
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-
-        return $earthRadius * $c;
     }
 }

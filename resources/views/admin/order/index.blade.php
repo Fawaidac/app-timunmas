@@ -10,6 +10,8 @@
     <p>Monitor dan kelola semua order dari tim sales</p>
 </div>
 
+
+
 @if(session('success'))
     <div style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;padding:12px 16px;border-radius:10px;margin-bottom:16px;">
         ✔ {{ session('success') }}
@@ -41,7 +43,7 @@
                 @forelse($orders as $order)
                     <tr>
                         <td><b>{{ $order->order_number }}</b></td>
-                        <td>{{ $order->customer->name }}</td>
+                        <td>{{ $order->customer->name ?? '-' }}</td>
                         <td>{{ \Carbon\Carbon::parse($order->order_date)->format('d M Y') }}</td>
                         <td>{{ ucfirst($order->payment_type) }}{{ $order->payment_type === 'credit' ? ' (' . $order->payment_term_days . 'h)' : '' }}</td>
                         <td>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
@@ -69,7 +71,10 @@
                         </td>
                     </tr>
                 @endforelse
+            </tbody>
         </table>
     </div>
 </article>
+
+@include('partials.pagination', ['paginator' => $orders, 'itemLabel' => 'order'])
 @endsection

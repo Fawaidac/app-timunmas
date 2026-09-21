@@ -137,7 +137,7 @@
             <div style="width:40px;height:40px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Sales</div>
-                <div style="font-size:13px;font-weight:600;">{{ $visit->sales->name }}</div>
+                <div style="font-size:13px;font-weight:600;">{{ $visit->sales->name ?? '-' }}</div>
             </div>
         </div>
 
@@ -145,7 +145,7 @@
             <div style="width:40px;height:40px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">📅</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Dibuat</div>
-                <div style="font-size:13px;font-weight:600;">{{ $visit->created_at->format('d M Y H:i') }}</div>
+                <div style="font-size:13px;font-weight:600;">{{ $visit->created_at ? \Carbon\Carbon::parse($visit->created_at)->format('d M Y H:i') : '-' }}</div>
             </div>
         </div>
     </article>

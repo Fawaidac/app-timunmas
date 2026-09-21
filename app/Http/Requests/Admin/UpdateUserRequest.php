@@ -13,26 +13,29 @@ class UpdateUserRequest extends FormRequest
 
     public function rules(): array
     {
+        // route param 'user' = NO_USER
+        $noUser = $this->route('user');
+
         return [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|max:255|unique:users,email,' . $this->route('user'),
+            'nm_user'  => 'required|string|max:50|unique:MST_PENGGUNA,NM_USER,' . $noUser . ',NO_USER',
             'role'     => 'required|in:admin,sales',
-            'area'     => 'nullable|string|max:255',
-            'phone'    => 'nullable|string|max:20',
-            'password' => 'nullable|string|min:8|confirmed',
+            'kd_peg'   => 'required_if:role,sales|nullable|string|max:10|exists:PEGAWAI,KD_PEG',
+            'password' => 'nullable|string|min:4|max:32|confirmed',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'name.required'      => 'Nama wajib diisi.',
-            'email.required'     => 'Email wajib diisi.',
-            'email.unique'       => 'Email sudah dipakai akun lain.',
-            'role.required'      => 'Role wajib dipilih.',
-            'role.in'            => 'Role harus admin atau sales.',
-            'password.min'       => 'Password minimal 8 karakter.',
-            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'nm_user.required'      => 'Username wajib diisi.',
+            'nm_user.unique'        => 'Username sudah dipakai akun lain.',
+            'nm_user.max'           => 'Username maksimal 50 karakter.',
+            'role.required'         => 'Role wajib dipilih.',
+            'role.in'               => 'Role harus admin atau sales.',
+            'kd_peg.required_if'    => 'Kode Pegawai wajib dipilih untuk role Sales.',
+            'kd_peg.exists'         => 'Kode Pegawai tidak ditemukan di tabel PEGAWAI.',
+            'password.min'          => 'Password minimal 4 karakter.',
+            'password.confirmed'    => 'Konfirmasi password tidak cocok.',
         ];
     }
 }

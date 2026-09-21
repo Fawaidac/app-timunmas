@@ -14,12 +14,12 @@ class StoreOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'customer_id'       => 'required|exists:customers,id',
+            'customer_id'       => 'required|exists:CUSTOMER,KD_CUST',
             'order_date'        => 'required|date',
             'payment_type'      => 'required|in:cash,credit',
             'payment_term_days' => 'nullable|integer|min:1',
             'product_id'        => 'required|array|min:1',
-            'product_id.*'      => 'required|exists:products,id',
+            'product_id.*'      => 'required|exists:BARANG,KD_BRG',
             'quantity'          => 'required|array|min:1',
             'quantity.*'        => 'required|integer|min:1',
             'price'             => 'required|array|min:1',

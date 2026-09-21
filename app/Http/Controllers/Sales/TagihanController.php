@@ -6,69 +6,76 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Payment;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Tagihan sales = piutang dari VW_PIUTANG (sumber resmi, keputusan poin #1).
+ * Filter per sales: kolom KD_PEG.
+ */
 class TagihanController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Get invoices dari customer/order yang disetujui milik sales ini
-        $salesId = auth()->id();
-        
-        $invoices = Invoice::with(['customer', 'order.sales', 'latestPayment'])
-            ->whereHas('order', function($q) use ($salesId) {
-                $q->where('sales_id', $salesId)
-                    ->where('status', '!=', 'cancelled');
+        $kdPeg = auth()->user()->KD_PEG;
+        $today = Carbon::today()->toDateString();
+
+        // Hitung statistik via query DB (bukan collection) agar efisien
+        $baseQuery = Invoice::when($kdPeg, fn ($q) => $q->where('KD_PEG', $kdPeg), fn ($q) => $q->whereRaw('1=0'))
+            ->where('SISA_PIUTANG', '>', 0.005);
+
+        $totalPiutang    = (float) (clone $baseQuery)->sum('SISA_PIUTANG');
+        $jatuhTempoHariIni = (float) (clone $baseQuery)
+            ->whereNotNull('TGL_JATUH_TEMPO')
+            ->whereRaw('CAST(TGL_JATUH_TEMPO AS DATE) = ?', [$today])
+            ->sum('SISA_PIUTANG');
+        $lewatJatuhTempo = (float) (clone $baseQuery)
+            ->whereNotNull('TGL_JATUH_TEMPO')
+            ->whereRaw('CAST(TGL_JATUH_TEMPO AS DATE) < ?', [$today])
+            ->sum('SISA_PIUTANG');
+
+        // Tertagih bulan ini = payment approved bulan ini
+        $tertagihBulanIni = (float) Payment::query()
+            ->where('STATUS', 'approved')
+            ->when($kdPeg, fn ($q) => $q->where('KD_PEG', $kdPeg))
+            ->whereRaw('EXTRACT(MONTH FROM TGL_APPROVE) = ? AND EXTRACT(YEAR FROM TGL_APPROVE) = ?', [
+                Carbon::now()->month, Carbon::now()->year,
+            ])
+            ->sum('JUMLAH');
+
+        // Paginate invoice list
+        $invoices = Invoice::with('customer')
+            ->when($kdPeg, fn ($q) => $q->where('KD_PEG', $kdPeg), fn ($q) => $q->whereRaw('1=0'))
+            ->where('SISA_PIUTANG', '>', 0.005)
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $s = strtoupper($request->search);
+                $q->whereRaw('UPPER(NO_ENT) LIKE ?', ["%{$s}%"])
+                  ->orWhereRaw('UPPER(KD_CUST) LIKE ?', ["%{$s}%"]);
             })
-            ->where('status', '!=', 'paid')
-            ->orderBy('due_date', 'asc')
-            ->get();
+            ->orderBy('TGL_JATUH_TEMPO', 'asc')
+            ->paginate(15)
+            ->withQueryString();
 
-        // Hitung stats
-        $totalPiutang = $invoices->sum('remaining_balance');
-        
-        $today = Carbon::today();
-        $jatuhTempoHariIni = $invoices->filter(function($inv) use ($today) {
-            return Carbon::parse($inv->due_date)->isSameDay($today);
-        })->sum('remaining_balance');
-        
-        $lewatJatuhTempo = $invoices->filter(function($inv) use ($today) {
-            return Carbon::parse($inv->due_date)->lt($today);
-        })->sum('remaining_balance');
+        $todayCarbon = Carbon::today();
+        $invoices->getCollection()->transform(function ($invoice) use ($todayCarbon) {
+            $dueDate     = $invoice->TGL_JATUH_TEMPO ? Carbon::parse($invoice->TGL_JATUH_TEMPO) : null;
+            $invoiceDate = $invoice->TANGGAL ? Carbon::parse($invoice->TANGGAL) : $todayCarbon;
+            $invoice->umur_hari = $invoiceDate->diffInDays($todayCarbon);
 
-        // Tertagih bulan ini = total payment approved bulan ini dari sales ini
-        $tertagihBulanIni = Payment::whereHas('invoice.order', function($q) use ($salesId) {
-                $q->where('sales_id', $salesId);
-            })
-            ->where('status', 'approved')
-            ->whereMonth('approved_at', Carbon::now()->month)
-            ->whereYear('approved_at', Carbon::now()->year)
-            ->sum('amount_paid');
-
-        // Format invoices dengan umur dan status badge
-        $invoices = $invoices->map(function($invoice) use ($today) {
-            $dueDate = Carbon::parse($invoice->due_date);
-            $invoiceDate = Carbon::parse($invoice->invoice_date);
-            $paymentType = optional($invoice->order)->payment_type === 'cash' ? 'Cash' : 'Kredit';
-            $termDays = $invoice->order->payment_term_days ?? 7;
-            
-            // Hitung umur tagihan (dari tanggal invoice sampai sekarang)
-            $umur = $invoiceDate->diffInDays($today);
-            
-            // Tentukan status badge
-            if ($dueDate->lt($today)) {
+            if ($dueDate === null) {
+                $invoice->badge_status = 'secondary';
+                $invoice->badge_label  = 'Tanpa tempo';
+            } elseif ($dueDate->lt($todayCarbon)) {
                 $invoice->badge_status = 'danger';
-                $invoice->badge_label = 'Terlambat (' . $paymentType . ')';
-            } elseif ($dueDate->isSameDay($today)) {
+                $invoice->badge_label  = 'Terlambat';
+            } elseif ($dueDate->isSameDay($todayCarbon)) {
                 $invoice->badge_status = 'warning';
-                $invoice->badge_label = 'Jatuh tempo';
+                $invoice->badge_label  = 'Jatuh tempo';
             } else {
                 $invoice->badge_status = 'success';
-                $invoice->badge_label = $paymentType . ' (' . $termDays . 'h)';
+                $invoice->badge_label  = 'Kredit';
             }
-            
-            $invoice->umur_hari = $umur;
-            
+
             return $invoice;
         });
 
@@ -81,3 +88,5 @@ class TagihanController extends Controller
         ));
     }
 }
+
+

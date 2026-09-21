@@ -3,114 +3,110 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\SalesHelper;
 use App\Models\SalesVisit;
 use App\Models\SalesOrder;
 use App\Models\Invoice;
 use App\Models\Payment;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Dashboard sales — sumber: KUNJUNGAN (web), MST_ORD_JUAL, VW_PIUTANG, PAYMENT.
+ */
 class DashboardController extends Controller
 {
     public function index()
     {
-        $salesId = auth()->id();
-        $today = Carbon::today();
-        $userName = auth()->user()->name;
+        $kdPeg    = SalesHelper::kdPeg();
+        $today    = Carbon::today();
+        $userName = SalesHelper::nama();
+
+        $scopedPeg = fn ($q) => $kdPeg ? $q->where('KD_PEG', $kdPeg) : $q->whereRaw('1=0');
 
         // Kunjungan hari ini
-        $kunjunganHariIni = SalesVisit::where('sales_id', $salesId)
-            ->whereDate('visit_date', $today)
-            ->get();
-        
-        $totalKunjunganHariIni = $kunjunganHariIni->count();
-        $kunjunganSelesai = $kunjunganHariIni->where('status', 'completed')->count();
+        $totalKunjunganHariIni = (int) SalesVisit::query()
+            ->where($scopedPeg)
+            ->whereRaw('CAST(TANGGAL AS DATE) = ?', [$today->toDateString()])
+            ->count();
 
-        // Order hari ini
-        $orderHariIni = SalesOrder::where('sales_id', $salesId)
-            ->whereDate('order_date', $today)
-            ->get();
-        
-        $totalOrderHariIni = $orderHariIni->sum('total_amount');
-        
-        // Order kemarin untuk perbandingan
-        $yesterday = Carbon::yesterday();
-        $orderKemarin = SalesOrder::where('sales_id', $salesId)
-            ->whereDate('order_date', $yesterday)
-            ->sum('total_amount');
-        
-        $percentageChange = 0;
-        if ($orderKemarin > 0) {
-            $percentageChange = (($totalOrderHariIni - $orderKemarin) / $orderKemarin) * 100;
-        }
+        $kunjunganSelesai = (int) SalesVisit::query()
+            ->where($scopedPeg)
+            ->where('STATUS', 'completed')
+            ->whereRaw('CAST(TANGGAL AS DATE) = ?', [$today->toDateString()])
+            ->count();
 
-        // Tagihan jatuh tempo (hari ini dan yang lewat)
-        $tagihanJatuhTempo = Invoice::whereHas('order', function($q) use ($salesId) {
-                $q->where('sales_id', $salesId)
-                  ->where('status', '!=', 'cancelled');
-            })
-            ->where('status', '!=', 'paid')
-            ->whereDate('due_date', '<=', $today)
-            ->get();
-        
-        $jumlahTagihanJatuhTempo = $tagihanJatuhTempo->count();
-        $nilaiTagihanJatuhTempo = $tagihanJatuhTempo->sum('remaining_balance');
+        // Order hari ini & kemarin (MST_ORD_JUAL)
+        $totalOrderHariIni = (float) DB::table('MST_ORD_JUAL')
+            ->where($scopedPeg)
+            ->whereRaw('CAST(TANGGAL AS DATE) = ?', [$today->toDateString()])
+            ->sum('TOTAL');
 
-        // Pembayaran dititipkan (pending approval)
-        $pembayaranDititipkan = Payment::where('sales_id', $salesId)
-            ->where('status', 'approved')
-            ->get();
-        
-        $jumlahPembayaranDititipkan = $pembayaranDititipkan->count();
-        $nilaiPembayaranDititipkan = $pembayaranDititipkan->sum('amount_paid');
+        $orderKemarin = (float) DB::table('MST_ORD_JUAL')
+            ->where($scopedPeg)
+            ->whereRaw('CAST(TANGGAL AS DATE) = ?', [Carbon::yesterday()->toDateString()])
+            ->sum('TOTAL');
 
-        // Order terbaru (5 terakhir)
+        $percentageChange = $orderKemarin > 0
+            ? (($totalOrderHariIni - $orderKemarin) / $orderKemarin) * 100
+            : 0;
+
+        // Tagihan jatuh tempo (VW_PIUTANG)
+        $jumlahTagihanJatuhTempo = (int) Invoice::query()
+            ->where($scopedPeg)
+            ->where('SISA_PIUTANG', '>', 0.005)
+            ->whereRaw('CAST(TGL_JATUH_TEMPO AS DATE) <= ?', [$today->toDateString()])
+            ->count();
+
+        $nilaiTagihanJatuhTempo = (float) Invoice::query()
+            ->where($scopedPeg)
+            ->where('SISA_PIUTANG', '>', 0.005)
+            ->whereRaw('CAST(TGL_JATUH_TEMPO AS DATE) <= ?', [$today->toDateString()])
+            ->sum('SISA_PIUTANG');
+
+        // Pembayaran dititipkan (approved)
+        $jumlahPembayaranDititipkan = (int) Payment::query()
+            ->where($scopedPeg)
+            ->where('STATUS', 'approved')
+            ->count();
+
+        $nilaiPembayaranDititipkan = (float) Payment::query()
+            ->where($scopedPeg)
+            ->where('STATUS', 'approved')
+            ->sum('JUMLAH');
+
+        // Order terbaru
         $orderTerbaru = SalesOrder::with('customer')
-            ->where('sales_id', $salesId)
-            ->orderBy('created_at', 'desc')
+            ->where($scopedPeg)
+            ->orderBy('TANGGAL', 'desc')
             ->limit(5)
             ->get()
-            ->map(function($order) {
-                // Map status ke badge
+            ->map(function ($order) {
                 $badgeMap = [
-                    'pending' => ['class' => 'badge-warning', 'label' => 'Menunggu'],
-                    'processing' => ['class' => 'badge-orange', 'label' => 'Diproses'],
-                    'approved' => ['class' => 'badge-success', 'label' => 'Disetujui'],
-                    'completed' => ['class' => 'badge-success', 'label' => 'Selesai'],
-                    'cancelled' => ['class' => 'badge-danger', 'label' => 'Dibatalkan'],
+                    'OS'    => ['class' => 'badge-warning', 'label' => 'Menunggu faktur'],
+                    'INV'   => ['class' => 'badge-success', 'label' => 'Sudah faktur'],
+                    'BATAL' => ['class' => 'badge-danger', 'label' => 'Dibatalkan'],
                 ];
-                
-                $order->badge_class = $badgeMap[$order->status]['class'] ?? 'badge-secondary';
-                $order->badge_label = $badgeMap[$order->status]['label'] ?? ucfirst($order->status);
-                
+
+                $order->badge_class = $badgeMap[$order->ST_JADI]['class'] ?? 'badge-secondary';
+                $order->badge_label = $badgeMap[$order->ST_JADI]['label'] ?? ucfirst((string) $order->ST_JADI);
+
                 return $order;
             });
 
-        // Rute kunjungan hari ini (ordered by visit_date)
+        // Rute kunjungan hari ini
         $ruteKunjungan = SalesVisit::with('customer')
-            ->where('sales_id', $salesId)
-            ->whereDate('visit_date', $today)
-            ->orderBy('visit_date', 'asc')
+            ->where($scopedPeg)
+            ->whereRaw('CAST(TANGGAL AS DATE) = ?', [$today->toDateString()])
+            ->orderBy('TANGGAL', 'asc')
             ->get()
-            ->map(function($visit) {
-                $time = Carbon::parse($visit->visit_date)->format('H:i');
-                $hour = Carbon::parse($visit->visit_date)->format('H');
-                
-                // Status label
-                $statusMap = [
-                    'scheduled' => 'Terjadwal',
-                    'in_progress' => 'Sedang dikunjungi',
-                    'completed' => 'Selesai',
-                    'cancelled' => 'Dibatalkan',
-                ];
-                
-                $visit->hour = $hour;
-                $visit->time_label = $time;
-                $visit->status_label = $statusMap[$visit->status] ?? ucfirst($visit->status);
-                
+            ->map(function ($visit) {
+                $visit->hour = $visit->TANGGAL ? Carbon::parse($visit->TANGGAL)->format('H') : '00';
+                $visit->time_label = $visit->TANGGAL ? Carbon::parse($visit->TANGGAL)->format('H:i') : '-';
+
                 return $visit;
             });
 
-        // Greeting berdasarkan waktu
         $currentHour = Carbon::now()->hour;
         if ($currentHour < 12) {
             $greeting = 'Selamat pagi';

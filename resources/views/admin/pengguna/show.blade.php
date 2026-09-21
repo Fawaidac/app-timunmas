@@ -64,7 +64,7 @@
             <div style="width:40px;height:40px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">📅</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Bergabung</div>
-                <div style="font-size:13px;font-weight:600;">{{ $user->created_at->format('d M Y') }}</div>
+                <div style="font-size:13px;font-weight:600;">{{ $user->created_at ? \Carbon\Carbon::parse($user->created_at)->format('d M Y') : '-' }}</div>
             </div>
         </div>
     </article>

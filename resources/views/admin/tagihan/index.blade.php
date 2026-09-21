@@ -69,6 +69,20 @@
     </div>
 </div>
 
+
+
+<div class="toolbar" style="margin-bottom: 20px;">
+    <form action="{{ route('admin.invoices') }}" method="GET" style="flex: 1; max-width: 400px;">
+        <label class="search-box" style="width: 100%;">
+            <span>⌕</span>
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nomor invoice atau kode pelanggan..." onchange="this.form.submit()">
+        </label>
+        @if(request('status'))
+            <input type="hidden" name="status" value="{{ request('status') }}">
+        @endif
+    </form>
+</div>
+
 <article class="card">
     <div class="table-responsive">
         <table>
@@ -89,15 +103,17 @@
                 @forelse($invoices as $invoice)
                     <tr>
                         <td><b>{{ $invoice->invoice_number }}</b></td>
-                        <td>{{ $invoice->customer->name }}</td>
+                        <td>{{ $invoice->customer->name ?? $invoice->KD_CUST ?? '-' }}</td>
                         <td>{{ $invoice->order->sales->name ?? '-' }}</td>
-                        <td>{{ \Carbon\Carbon::parse($invoice->invoice_date)->format('d M Y') }}</td>
-                        <td>{{ \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') }}</td>
-                        <td>{{ $invoice->umur_hari }} hari</td>
+                        <td>{{ $invoice->invoice_date ? \Carbon\Carbon::parse($invoice->invoice_date)->format('d M Y') : '-' }}</td>
+                        <td>{{ $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') : '-' }}</td>
+                        <td>{{ $invoice->umur_hari ?? 0 }} hari</td>
                         <td>Rp {{ number_format($invoice->total_amount, 0, ',', '.') }}</td>
                         <td>Rp {{ number_format($invoice->remaining_balance, 0, ',', '.') }}</td>
                         <td>
-                            <a href="" class="button button-soft" style="padding:6px 12px;font-size:11px;">{{  $invoice->badge_label  }}</a>
+                            <span class="badge badge-{{ $invoice->badge_status ?? 'secondary' }}" style="padding:4px 10px;font-size:11px;">
+                                {{ $invoice->badge_label ?? '-' }}
+                            </span>
                         </td>
                     </tr>
                 @empty
@@ -105,12 +121,15 @@
                         <td colspan="9" style="padding:60px 20px;text-align:center;color:var(--muted);">
                             <div style="font-size:48px;margin-bottom:12px;">📄</div>
                             <p style="font-size:16px;font-weight:500;">Belum ada invoice</p>
-                            <p style="font-size:13px;">Invoice akan muncul setelah order dibuat</p>
+                            <p style="font-size:13px;">Data tagihan/invoice akan muncul di sini</p>
                         </td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+
+    @include('partials.pagination', ['paginator' => $invoices, 'itemLabel' => 'invoice'])
 </article>
 @endsection
+

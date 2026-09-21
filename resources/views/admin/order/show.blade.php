@@ -8,7 +8,7 @@
 <div class="section-head" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
     <div>
         <h2>{{ $orders->order_number }}</h2>
-        <p>Customer: {{ $orders->customer->name }}</p>
+        <p>Customer: {{ $orders->customer->name ?? $orders->KD_CUST ?? '-' }}</p>
     </div>
     <div style="display:flex;gap:8px;">
         <a href="javascript:history.back()" class="button button-soft">← Kembali</a>
@@ -32,15 +32,15 @@
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Tanggal Order</label>
-                <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($orders->order_date)->format('d M Y') }}" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ $orders->order_date ? \Carbon\Carbon::parse($orders->order_date)->format('d M Y') : '-' }}" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Customer</label>
-                <input type="text" class="form-control" value="{{ $orders->customer->name }}" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ $orders->customer->name ?? $orders->KD_CUST ?? '-' }}" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Sales</label>
-                <input type="text" class="form-control" value="{{ $orders->sales->name }}" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ $orders->sales->name ?? '-' }}" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Jenis Pembayaran</label>
@@ -67,10 +67,10 @@
                     @foreach($orders->items as $item)
                         <tr style="border-bottom:1px solid #f1f5f9;">
                             <td style="padding:10px;">
-                                <div style="font-weight:600;">{{ $item->product->name }}</div>
-                                <div style="font-size:11px;color:var(--muted);">SKU: {{ $item->product->sku }}</div>
+                                <div style="font-weight:600;">{{ $item->product->name ?? $item->NM_BRG ?? '-' }}</div>
+                                <div style="font-size:11px;color:var(--muted);">SKU: {{ $item->product->sku ?? $item->KD_BRG ?? '-' }}</div>
                             </td>
-                            <td style="padding:10px;text-align:center;">{{ $item->quantity }} {{ $item->product->unit }}</td>
+                            <td style="padding:10px;text-align:center;">{{ $item->quantity }} {{ $item->product->unit ?? $item->SATUAN ?? '' }}</td>
                             <td style="padding:10px;text-align:right;">Rp {{ number_format($item->price_per_unit, 0, ',', '.') }}</td>
                             <td style="padding:10px;text-align:right;font-weight:600;">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
                         </tr>
@@ -124,7 +124,7 @@
             <div style="width:40px;height:40px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">📅</div>
             <div>
                 <div style="font-size:11px;color:var(--muted);">Dibuat</div>
-                <div style="font-size:13px;font-weight:600;">{{ $orders->created_at->format('d M Y H:i') }}</div>
+                <div style="font-size:13px;font-weight:600;">{{ $orders->created_at ? \Carbon\Carbon::parse($orders->created_at)->format('d M Y H:i') : '-' }}</div>
             </div>
         </div>
     </article>

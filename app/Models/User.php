@@ -2,65 +2,107 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * User web = MST_PENGGUNA (legacy ClickSoft ASRI).
+ * Login: NM_USER + KATAKUNCI — DIBANDINGKAN LANGSUNG (TANPA bcrypt),
+ * sesuai keputusan pemilik sistem.
+ */
 class User extends FirebirdAuthenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    protected $table = 'MST_PENGGUNA';
+    protected $primaryKey = 'NO_USER';
+    public $incrementing = false;
+    protected $keyType = 'int';
+    public $timestamps = false;
+
     protected $fillable = [
-        'name',
-        'email',
-        'role',
-        'area',
-        'phone',
-        'password',
+        'NO_USER', 'NM_USER', 'KATAKUNCI', 'NO_OTOR', 'KD_PEG', 'REMEMBER_TOKEN',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'KATAKUNCI', 'REMEMBER_TOKEN',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    /* ------------------------------------------------------------------
+     |  Relasi ke PEGAWAI (sales punya KD_PEG)
+     | ------------------------------------------------------------------ */
+
+    public function pegawai(): BelongsTo
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(Pegawai::class, 'KD_PEG', 'KD_PEG');
     }
 
-    public function visits()
+    /* ------------------------------------------------------------------
+     |  Alias atribut untuk view (nama friendly -> kolom legacy)
+     | ------------------------------------------------------------------ */
+
+    public function getNameAttribute()
     {
-        return $this->hasMany(SalesVisit::class, 'sales_id');
+        return $this->NM_USER;
     }
 
-    public function orders()
+    /** View memakai "email" sebagai identitas akun -> tampilkan NM_USER. */
+    public function getEmailAttribute()
     {
-        return $this->hasMany(SalesOrder::class, 'sales_id');
+        return $this->NM_USER;
     }
 
-    public function payments()
+    public function getPhoneAttribute()
     {
-        return $this->hasMany(Payment::class, 'sales_id');
+        return '';
+    }
+
+    public function getAreaAttribute()
+    {
+        return '';
+    }
+
+    /** Role admin/sales dari nama otoritas legacy (MST_OTORITAS). */
+    public function getRoleAttribute()
+    {
+        $nmOtor = (string) DB::table('MST_OTORITAS')
+            ->where('NO_OTOR', $this->NO_OTOR)
+            ->value('NM_OTOR');
+
+        if (str_contains(strtoupper($nmOtor), 'SALES')) {
+            return 'sales';
+        }
+
+        return 'admin';
+    }
+
+    public function getRememberTokenName()
+    {
+        return 'REMEMBER_TOKEN';
+    }
+
+    /** Password diverifikasi langsung (plain), TANPA bcrypt/hash. */
+    public function getAuthPassword()
+    {
+        return $this->KATAKUNCI;
+    }
+
+    /* ------------------------------------------------------------------
+     |  Helper buat/manage user (NO_USER bukan generator terkelola
+     |  trigger -> pakai MAX(NO_USER)+1 di dalam transaksi)
+     | ------------------------------------------------------------------ */
+
+    public static function nextNoUser(): int
+    {
+        return (int) (self::query()->max('NO_USER') ?? 0) + 1;
+    }
+
+    /** Nama otoritas legacy untuk tampilan. */
+    public function getNmOtorAttribute()
+    {
+        return DB::table('MST_OTORITAS')
+            ->where('NO_OTOR', $this->NO_OTOR)
+            ->value('NM_OTOR');
     }
 }

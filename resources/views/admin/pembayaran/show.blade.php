@@ -94,14 +94,14 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
                 <div>
                     <p style="color:var(--muted);font-size:12px;margin:0 0 4px;">Pelanggan</p>
-                    <p style="font-weight:600;margin:0 0 4px;">{{ $payment->customer->name }}</p>
-                    <p style="font-size:12px;color:var(--muted);margin:0;">{{ $payment->customer->address }}</p>
-                    <p style="font-size:12px;color:var(--muted);margin:4px 0 0;">{{ $payment->customer->phone }}</p>
+                    <p style="font-weight:600;margin:0 0 4px;">{{ $payment->customer->name ?? '-' }}</p>
+                    <p style="font-size:12px;color:var(--muted);margin:0;">{{ $payment->customer->address ?? '-' }}</p>
+                    <p style="font-size:12px;color:var(--muted);margin:4px 0 0;">{{ $payment->customer->phone ?? '-' }}</p>
                 </div>
                 <div>
                     <p style="color:var(--muted);font-size:12px;margin:0 0 4px;">Sales</p>
-                    <p style="font-weight:600;margin:0;">{{ $payment->sales->name }}</p>
-                    <p style="font-size:12px;color:var(--muted);margin:4px 0 0;">{{ $payment->sales->email }}</p>
+                    <p style="font-weight:600;margin:0;">{{ $payment->sales->name ?? '-' }}</p>
+                    <p style="font-size:12px;color:var(--muted);margin:4px 0 0;">{{ $payment->sales->phone ?? $payment->sales->code ?? '-' }}</p>
                 </div>
             </div>
         </article>
@@ -113,22 +113,22 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
                 <div>
                     <p style="color:var(--muted);font-size:12px;margin:0 0 4px;">No. Invoice</p>
-                    <p style="font-weight:600;margin:0;">{{ $payment->invoice->invoice_number }}</p>
+                    <p style="font-weight:600;margin:0;">{{ $payment->invoice->invoice_number ?? $payment->NO_ENT ?? '-' }}</p>
                 </div>
                 <div>
                     <p style="color:var(--muted);font-size:12px;margin:0 0 4px;">Tanggal Invoice</p>
-                    <p style="font-weight:600;margin:0;">{{ \Carbon\Carbon::parse($payment->invoice->invoice_date)->format('d M Y') }}</p>
+                    <p style="font-weight:600;margin:0;">{{ $payment->invoice && $payment->invoice->invoice_date ? \Carbon\Carbon::parse($payment->invoice->invoice_date)->format('d M Y') : '-' }}</p>
                 </div>
                 <div>
                     <p style="color:var(--muted);font-size:12px;margin:0 0 4px;">Jatuh Tempo</p>
-                    <p style="font-weight:600;margin:0;">{{ \Carbon\Carbon::parse($payment->invoice->due_date)->format('d M Y') }}</p>
+                    <p style="font-weight:600;margin:0;">{{ $payment->invoice && $payment->invoice->due_date ? \Carbon\Carbon::parse($payment->invoice->due_date)->format('d M Y') : '-' }}</p>
                 </div>
                 <div>
                     <p style="color:var(--muted);font-size:12px;margin:0 0 4px;">Status Invoice</p>
                     <p style="margin:0;">
-                        @if($payment->invoice->status === 'paid')
+                        @if(($payment->invoice->status ?? '') === 'paid')
                             <span class="badge badge-success">Lunas</span>
-                        @elseif($payment->invoice->status === 'partially_paid')
+                        @elseif(($payment->invoice->status ?? '') === 'partially_paid')
                             <span class="badge badge-info">Dibayar Sebagian</span>
                         @else
                             <span class="badge badge-warning">Belum Dibayar</span>
@@ -140,11 +140,11 @@
             <div style="background:#f9fafb;padding:16px;border-radius:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
                 <div>
                     <p style="color:var(--muted);font-size:12px;margin:0 0 4px;">Total Invoice</p>
-                    <p style="font-weight:700;font-size:18px;margin:0;">Rp {{ number_format($payment->invoice->total_amount, 0, ',', '.') }}</p>
+                    <p style="font-weight:700;font-size:18px;margin:0;">Rp {{ number_format($payment->invoice->total_amount ?? $payment->amount_paid, 0, ',', '.') }}</p>
                 </div>
                 <div>
                     <p style="color:var(--muted);font-size:12px;margin:0 0 4px;">Sisa Tagihan</p>
-                    <p style="font-weight:700;font-size:18px;margin:0;">Rp {{ number_format($payment->invoice->remaining_balance, 0, ',', '.') }}</p>
+                    <p style="font-weight:700;font-size:18px;margin:0;">Rp {{ number_format($payment->invoice->remaining_balance ?? 0, 0, ',', '.') }}</p>
                 </div>
                 <div>
                     <p style="color:var(--muted);font-size:12px;margin:0 0 4px;">Pembayaran Ini</p>
@@ -153,6 +153,7 @@
             </div>
         </article>
 
+        @if($payment->invoice && $payment->invoice->order && $payment->invoice->order->items->isNotEmpty())
         <!-- Order Items -->
         <article class="card">
             <h3 style="margin:0 0 16px;font-size:16px;border-bottom:1px solid #f3f4f6;padding-bottom:12px;">Item Order</h3>
@@ -170,8 +171,8 @@
                     <tbody>
                         @foreach($payment->invoice->order->items as $item)
                             <tr>
-                                <td>{{ $item->product->name }}</td>
-                                <td>{{ $item->quantity }} {{ $item->product->unit ?? 'pcs' }}</td>
+                                <td>{{ $item->product->name ?? $item->NM_BRG ?? '-' }}</td>
+                                <td>{{ $item->quantity }} {{ $item->product->unit ?? $item->SATUAN ?? 'pcs' }}</td>
                                 <td>Rp {{ number_format($item->price_per_unit, 0, ',', '.') }}</td>
                                 <td>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
                             </tr>
@@ -184,6 +185,7 @@
                 </table>
             </div>
         </article>
+        @endif
     </div>
 
     <!-- Sidebar Actions -->

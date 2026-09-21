@@ -27,7 +27,16 @@
     @endforeach
 </section>
 
-<div class="visit-grid" style="margin-top:24px;">
+<div class="toolbar" style="margin-top:24px;">
+    <form action="{{ route('sales.tagihan.index') }}" method="GET" style="flex: 1; max-width: 400px;">
+        <label class="search-box" style="width: 100%;">
+            <span>⌕</span>
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nomor tagihan atau kode customer..." onchange="this.form.submit()">
+        </label>
+    </form>
+</div>
+
+<div class="visit-grid" style="margin-top:16px;">
     @forelse($invoices as $invoice)
         <article class="visit-card">
             <div class="visit-top">
@@ -37,10 +46,10 @@
                 </span>
             </div>
 
-            <p style="font-weight:500;color:var(--text);margin-bottom:8px;">{{ $invoice->customer->name }}</p>
+            <p style="font-weight:500;color:var(--text);margin-bottom:8px;">{{ $invoice->customer?->name ?? $invoice->KD_CUST ?? '-' }}</p>
 
             <div class="meta-grid">
-                <div>📅 JT: {{ \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') }}</div>
+                <div>📅 JT: {{ $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') : '-' }}</div>
                 <div>💰 Rp {{ number_format($invoice->remaining_balance / 1000, 0, ',', '.') }}k</div>
                 <div>⏱ Umur: {{ $invoice->umur_hari }} hari</div>
                 <div>
@@ -89,4 +98,6 @@
         </div>
     @endforelse
 </div>
+
+@include('partials.pagination', ['paginator' => $invoices, 'itemLabel' => 'tagihan'])
 @endsection

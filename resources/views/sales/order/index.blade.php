@@ -90,5 +90,7 @@
                 @endforelse
         </table>
     </div>
+
+    @include('partials.pagination', ['paginator' => $orders, 'itemLabel' => 'order'])
 </article>
 @endsection

@@ -14,26 +14,28 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|max:255|unique:users,email',
+            // nm_user = username login (disimpan ke NM_USER di MST_PENGGUNA)
+            'nm_user'  => 'required|string|max:50|unique:MST_PENGGUNA,NM_USER',
             'role'     => 'required|in:admin,sales',
-            'area'     => 'nullable|string|max:255',
-            'phone'    => 'nullable|string|max:20',
-            'password' => 'required|string|min:8|confirmed',
+            // kd_peg wajib kalau role = sales (link ke tabel PEGAWAI)
+            'kd_peg'   => 'required_if:role,sales|nullable|string|max:10|exists:PEGAWAI,KD_PEG',
+            'password' => 'required|string|min:4|max:32|confirmed',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'name.required'      => 'Nama wajib diisi.',
-            'email.required'     => 'Email wajib diisi.',
-            'email.unique'       => 'Email sudah terdaftar.',
-            'role.required'      => 'Role wajib dipilih.',
-            'role.in'            => 'Role harus admin atau sales.',
-            'password.required'  => 'Password wajib diisi.',
-            'password.min'       => 'Password minimal 8 karakter.',
-            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'nm_user.required'      => 'Username wajib diisi.',
+            'nm_user.unique'        => 'Username sudah dipakai akun lain.',
+            'nm_user.max'           => 'Username maksimal 50 karakter.',
+            'role.required'         => 'Role wajib dipilih.',
+            'role.in'               => 'Role harus admin atau sales.',
+            'kd_peg.required_if'    => 'Kode Pegawai wajib dipilih untuk role Sales.',
+            'kd_peg.exists'         => 'Kode Pegawai tidak ditemukan di tabel PEGAWAI.',
+            'password.required'     => 'Password wajib diisi.',
+            'password.min'          => 'Password minimal 4 karakter.',
+            'password.confirmed'    => 'Konfirmasi password tidak cocok.',
         ];
     }
 }

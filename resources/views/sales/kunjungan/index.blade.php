@@ -17,59 +17,60 @@
 @endif
 
 <div class="toolbar">
-    <div></div>
+    <form action="{{ route('sales.kunjungan.index') }}" method="GET" style="flex: 1; max-width: 400px;">
+        <label class="search-box" style="width: 100%;">
+            <span>⌕</span>
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama customer..." onchange="this.form.submit()">
+        </label>
+    </form>
     <a href="{{ route('sales.kunjungan.create') }}" class="button button-primary">＋ Jadwalkan Kunjungan</a>
 </div>
 
 <div class="visit-grid">
     @forelse($visits as $visit)
+        @php
+            $isScheduled = ($visit->status === 'scheduled' || empty($visit->checkin_time));
+            $isCheckedIn = !empty($visit->checkin_time);
+        @endphp
         <article class="visit-card">
             <div class="visit-top">
-                <h4>{{ $visit->customer->name }}</h4>
-                <span class="badge badge-{{ $visit->status === 'scheduled' ? 'warning' : ($visit->status === 'in_progress' ? 'primary' : ($visit->status === 'completed' ? 'success' : 'danger')) }}">
-                    {{ $visit->status === 'scheduled' ? 'Dijadwalkan' : ($visit->status === 'in_progress' ? 'Berlangsung' : ($visit->status === 'completed' ? 'Selesai' : 'Batal')) }}
+                <h4>{{ $visit->customer->name ?? 'Customer' }}</h4>
+                <span class="badge {{ $visit->badge_class }}">
+                    {{ $visit->badge_label }}
                 </span>
             </div>
 
-            <p>{{ $visit->customer->address }}</p>
+            <p>{{ $visit->customer->address ?? 'Tidak ada alamat' }}</p>
 
             <div class="meta-grid">
-                <div>📅  {{ \Carbon\Carbon::parse($visit->visit_date)->format('d M Y') }}</div>
+                <div>📅 {{ $visit->visit_date ? \Carbon\Carbon::parse($visit->visit_date)->format('d M Y') : '-' }}</div>
                 <div>🕘 {{ $visit->checkin_time ? \Carbon\Carbon::parse($visit->checkin_time)->format('H:i') : 'Belum Check-in' }}</div>
-                <div>Tujuan: {{ $visit->purpose === 'merchandising' ? 'Merchandising' : ($visit->purpose === 'collection' ? 'Penagihan' : 'Order') }}</div>
-                <div>{{ $visit->status === 'completed' ? 'Durasi' : ($visit->status === 'in_progress' ? 'Check-in' : 'Prioritas') }}: {{ $visit->duration ?? 'N/A' }}</div>
+                <div>Tujuan: {{ ucfirst($visit->purpose ?? '-') }}</div>
+                <div>Catatan: {{ $visit->notes ? Str::limit($visit->notes, 20) : '—' }}</div>
             </div>
 
-            <div class="button-row">
-                @if($visit->status === 'scheduled')
-                    <a href="{{ route('sales.kunjungan.checkin', $visit->id) }}" class="button button-soft full-width" style="margin-top:12px;padding:9px;font-size:11px;text-align:center;">
-                        Check-in Sekarang
+            <div class="button-row" style="margin-top: 12px; gap: 8px;">
+                @if(!$isCheckedIn)
+                    {{-- Belum check-in -> Tombol Check-in aktif --}}
+                    <a href="{{ route('sales.kunjungan.checkin', $visit->id) }}" class="button button-primary full-width" style="padding:9px;font-size:12px;text-align:center;">
+                        📍 Check-in Sekarang
                     </a>
                 @else
-                    <button disabled class="button button-soft full-width" style="margin-top:12px;padding:9px;font-size:11px;text-align:center;opacity:0.5;cursor:not-allowed;">
-                        Sudah Check-in
+                    {{-- Sudah check-in --}}
+                    <button disabled class="button button-soft full-width" style="padding:9px;font-size:12px;text-align:center;opacity:0.75;cursor:default;">
+                        ✓ Sudah Check-in
                     </button>
-                @endif
-
-                @if($visit->purpose === 'order' || $visit->purpose === 'collection')
-                    @if($visit->checkin_time)
+                    @if($visit->purpose === 'order' || $visit->purpose === 'collection')
                         <a href="{{ route('sales.order.index', ['customer_id' => $visit->customer_id, 'visit_id' => $visit->id]) }}" 
-                            class="button button-primary full-width" 
-                            style="margin-top:12px; padding:9px; font-size:11px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
-                                Sales Order
+                           class="button button-primary full-width" 
+                           style="padding:9px;font-size:12px;text-align:center;display:flex;align-items:center;justify-content:center;text-decoration:none;">
+                            🛒 Sales Order
                         </a>
-                    @else
-                        <button disabled class="button button-primary full-width" style="margin-top:12px;padding:9px;font-size:11px;text-align:center;">
-                            Check-in dulu
-                        </button>
                     @endif
-                @else
-                    <button disabled class="button button-primary full-width" style="margin-top:12px;padding:9px;font-size:11px;text-align:center;">
-                        Tidak untuk order
-                    </button>
                 @endif
             </div>
-            <a href="{{ route('sales.kunjungan.show', $visit->id) }}" class="button button-soft full-width" style="margin-top:12px;padding:9px;font-size:11px;text-align:center;">
+
+            <a href="{{ route('sales.kunjungan.show', $visit->id) }}" class="button button-soft full-width" style="margin-top:8px;padding:8px;font-size:11px;text-align:center;">
                 Lihat Detail
             </a>
         </article>
@@ -81,4 +82,6 @@
         </div>
     @endforelse
 </div>
+
+@include('partials.pagination', ['paginator' => $visits, 'itemLabel' => 'kunjungan'])
 @endsection

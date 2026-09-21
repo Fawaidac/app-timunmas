@@ -5,33 +5,37 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SalesVisit;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
+/**
+ * Kunjungan (admin) -> tabel KUNJUNGAN (web).
+ */
 class VisitController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $today = Carbon::today();
+        $visits = SalesVisit::with(['customer', 'sales'])
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $s = strtoupper(trim($request->search));
+                $q->where(function ($sub) use ($s) {
+                    $sub->whereHas('customer', function ($cq) use ($s) {
+                        $cq->whereRaw('UPPER(CAST(NM_CUST AS VARCHAR(100))) LIKE ?', ["%{$s}%"])
+                           ->orWhereRaw('UPPER(CAST(KD_CUST AS VARCHAR(100))) LIKE ?', ["%{$s}%"]);
+                    })->orWhereHas('sales', function ($sq) use ($s) {
+                        $sq->whereRaw('UPPER(CAST(NM_PEG AS VARCHAR(100))) LIKE ?', ["%{$s}%"])
+                           ->orWhereRaw('UPPER(CAST(KD_PEG AS VARCHAR(100))) LIKE ?', ["%{$s}%"]);
+                    });
+                });
+            })
+            ->orderBy('TANGGAL', 'desc')
+            ->orderBy('NOMOR', 'desc')
+            ->paginate(12)
+            ->withQueryString();
 
-        // Get semua kunjungan hari ini dari semua sales
-        $visits = SalesVisit::with(['sales', 'customer'])
-            ->whereDate('visit_date', $today)
-            ->orderBy('visit_date', 'asc')
-            ->get()
-            ->map(function($visit) {
-                // Map status ke badge class
-                $badgeMap = [
-                    'scheduled' => ['class' => 'badge-warning', 'label' => 'Terjadwal'],
-                    'in_progress' => ['class' => 'badge-orange', 'label' => 'Berlangsung'],
-                    'completed' => ['class' => 'badge-success', 'label' => 'Selesai'],
-                    'cancelled' => ['class' => 'badge-danger', 'label' => 'Dibatalkan'],
-                ];
-                
-                $visit->badge_class = $badgeMap[$visit->status]['class'] ?? 'badge-secondary';
-                $visit->badge_label = $badgeMap[$visit->status]['label'] ?? ucfirst($visit->status);
-                $visit->time_label = Carbon::parse($visit->visit_date)->format('H:i');
-                
-                return $visit;
-            });
+        $visits->getCollection()->transform(function ($visit) {
+            $visit->time_label = $visit->TANGGAL ? Carbon::parse($visit->TANGGAL)->format('H:i') : '-';
+            return $visit;
+        });
 
         return view('admin.kunjungan.index', compact('visits'));
     }
@@ -39,7 +43,8 @@ class VisitController extends Controller
     public function show($id)
     {
         $visit = SalesVisit::with(['customer', 'sales', 'order.items.product'])
-            ->findOrFail($id);
+            ->where('NOMOR', $id)
+            ->firstOrFail();
 
         return view('admin.kunjungan.show', compact('visit'));
     }

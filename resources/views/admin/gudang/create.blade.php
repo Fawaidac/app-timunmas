@@ -24,15 +24,10 @@
     <form action="{{ route('admin.warehouses.store') }}" method="POST">
         @csrf
 
-        <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div class="field">
-                <label>Kode Gudang <span style="color:#ef4444;">*</span></label>
-                <input type="text" name="code" class="form-control" value="{{ old('code') }}" placeholder="Contoh: GDG-JKT-01" required maxlength="50">
-            </div>
-            <div class="field">
-                <label>Nama Gudang <span style="color:#ef4444;">*</span></label>
-                <input type="text" name="name" class="form-control" value="{{ old('name') }}" placeholder="Contoh: Gudang Jakarta Selatan" required maxlength="100">
-            </div>
+        <div class="field">
+            <label>Nama / Kode Gudang <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="name" class="form-control" value="{{ old('name') }}" placeholder="Contoh: 03-GUDANG SURABAYA atau Gudang Utama" required maxlength="50">
+            <small style="color:var(--muted);font-size:12px;display:block;margin-top:4px;">Nama ini akan digunakan sebagai identitas unik gudang di database.</small>
         </div>
 
         <div class="field">
