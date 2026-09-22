@@ -10,11 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Pembayaran (admin) -> tabel PAYMENT (web).
- * Approve = sinkron ke legacy: UPDATE MST_JUAL.JML_BAYAR +
- * insert kartu piutang DET_KRT_PIUTANG (KREDIT) dengan NOMOR dari generator.
- */
+
 class PembayaranController extends Controller
 {
     public function index(Request $request)
@@ -49,9 +45,9 @@ class PembayaranController extends Controller
         if ($request->filled('search')) {
             $s = strtoupper($request->search);
             $query->where(function ($q) use ($s) {
-                $q->whereRaw('UPPER(NO_BUKTI) LIKE ?', ["%{$s}%"])
-                    ->orWhereRaw('UPPER(NO_ENT) LIKE ?', ["%{$s}%"])
-                    ->orWhereRaw('UPPER(KD_CUST) LIKE ?', ["%{$s}%"]);
+                $q->whereRaw('UPPER(CAST(NO_BUKTI AS VARCHAR(100))) LIKE ?', ["%{$s}%"])
+                    ->orWhereRaw('UPPER(CAST(NO_ENT AS VARCHAR(100))) LIKE ?', ["%{$s}%"])
+                    ->orWhereRaw('UPPER(CAST(KD_CUST AS VARCHAR(100))) LIKE ?', ["%{$s}%"]);
             });
         }
 
@@ -88,48 +84,53 @@ class PembayaranController extends Controller
         DB::transaction(function () use ($payment) {
             $faktur = DB::table('MST_JUAL')->where('NO_ENT', $payment->NO_ENT)->first();
 
-            if (! $faktur) {
-                throw new \RuntimeException('Faktur ' . $payment->NO_ENT . ' tidak ditemukan di MST_JUAL.');
+            if ($faktur) {
+                $jumlah = (float) $payment->JUMLAH;
+
+                DB::table('MST_JUAL')->where('NO_ENT', $payment->NO_ENT)->update([
+                    'JML_BAYAR' => (float) $faktur->JML_BAYAR + $jumlah,
+                ]);
+
+                $sisaBaru = (float) $faktur->NETTO
+                    - ((float) $faktur->JML_BAYAR + $jumlah + (float) $faktur->U_MUKA
+                        + (float) $faktur->JML_RETUR + (float) $faktur->JML_KUPON);
+
+                $noKartu = (int) (DB::select('SELECT GEN_ID(DET_KRT_PIUTANG_NOMOR_GEN, 1) AS ID FROM RDB$DATABASE')[0]->ID ?? 0);
+                $nmPeg = Pegawai::find($payment->KD_PEG)->NM_PEG ?? null;
+
+                DB::table('DET_KRT_PIUTANG')->insert([
+                    'NOMOR'      => $noKartu,
+                    'TANGGAL'    => now()->format('Y-m-d H:i:s'),
+                    'NO_BUKTI'   => $payment->NO_BUKTI,
+                    'KD_CUST'    => $payment->KD_CUST,
+                    'KET'        => 'PEMBAYARAN',
+                    'DEBET'      => 0,
+                    'KREDIT'     => $jumlah,
+                    'SALDO'      => max(0, $sisaBaru),
+                    'BYR_TUNAI'  => $payment->METODE === 'cash' ? $jumlah : 0,
+                    'BYR_CEK'    => $payment->METODE === 'giro' ? $jumlah : 0,
+                    'TGL_JT'     => null,
+                    'STS_SIMPAN' => 0,
+                    'PENJUALAN'  => 0,
+                    'PEMBAYARAN' => $jumlah,
+                    'NM_PEG'     => $nmPeg,
+                ]);
             }
 
-            $jumlah = (float) $payment->JUMLAH;
-
-            // 1. Update piutang legacy
-            DB::table('MST_JUAL')->where('NO_ENT', $payment->NO_ENT)->update([
-                'JML_BAYAR' => (float) $faktur->JML_BAYAR + $jumlah,
-            ]);
-
-            // 2. Kartu piutang (baris KREDIT, sama polanya dengan retur/pembayaran legacy)
-            $sisaBaru = (float) $faktur->NETTO
-                - ((float) $faktur->JML_BAYAR + $jumlah + (float) $faktur->U_MUKA
-                    + (float) $faktur->JML_RETUR + (float) $faktur->JML_KUPON);
-
-            $noKartu = (int) (DB::select('SELECT GEN_ID(DET_KRT_PIUTANG_NOMOR_GEN, 1) AS ID FROM RDB$DATABASE')[0]->ID ?? 0);
-            $nmPeg = Pegawai::find($payment->KD_PEG)->NM_PEG ?? null;
-
-            DB::table('DET_KRT_PIUTANG')->insert([
-                'NOMOR'      => $noKartu,
-                'TANGGAL'    => now()->format('Y-m-d H:i:s'),
-                'NO_BUKTI'   => $payment->NO_BUKTI,
-                'KD_CUST'    => $payment->KD_CUST,
-                'KET'        => 'PEMBAYARAN',
-                'DEBET'      => 0,
-                'KREDIT'     => $jumlah,
-                'SALDO'      => max(0, $sisaBaru),
-                'BYR_TUNAI'  => $payment->METODE === 'cash' ? $jumlah : 0,
-                'BYR_CEK'    => $payment->METODE === 'giro' ? $jumlah : 0,
-                'TGL_JT'     => null,
-                'STS_SIMPAN' => 0,
-                'PENJUALAN'  => 0,
-                'PEMBAYARAN' => $jumlah,
-                'NM_PEG'     => $nmPeg,
-            ]);
-
-            // 3. Update status payment web
             $payment->update([
                 'STATUS'          => 'approved',
                 'NO_USER_APPROVE' => auth()->user()->NO_USER,
                 'TGL_APPROVE'     => now()->format('Y-m-d H:i:s'),
+            ]);
+
+            \App\Services\NotificationService::send([
+                'type'        => 'payment_approved',
+                'target_role' => 'sales',
+                'target_user' => $payment->KD_PEG,
+                'title'       => 'Pembayaran Disetujui',
+                'message'     => 'Titip pembayaran ' . $payment->NO_BUKTI . ' (Rp ' . number_format($payment->JUMLAH, 0, ',', '.') . ') telah disetujui Admin.',
+                'url'         => route('sales.tagihan.index'),
+                'icon'        => '✅',
             ]);
         });
 
@@ -154,6 +155,16 @@ class PembayaranController extends Controller
             'ALASAN'          => $request->rejection_reason,
             'NO_USER_APPROVE' => auth()->user()->NO_USER,
             'TGL_APPROVE'     => now()->format('Y-m-d H:i:s'),
+        ]);
+
+        \App\Services\NotificationService::send([
+            'type'        => 'payment_rejected',
+            'target_role' => 'sales',
+            'target_user' => $payment->KD_PEG,
+            'title'       => 'Pembayaran Ditolak',
+            'message'     => 'Titip pembayaran ' . $payment->NO_BUKTI . ' ditolak Admin. Alasan: ' . $request->rejection_reason,
+            'url'         => route('sales.pembayaran.index', $payment->NO_ENT),
+            'icon'        => '❌',
         ]);
 
         return redirect()->route('admin.pembayaran.show', $id)

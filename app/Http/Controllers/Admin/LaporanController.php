@@ -9,10 +9,6 @@ use App\Models\Pegawai;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Laporan admin — sumber: PAYMENT (web), MST_ORD_JUAL, KUNJUNGAN (web),
- * REKAP_OMZET_EFF_CALL (legacy).
- */
 class LaporanController extends Controller
 {
     public function index()
@@ -20,7 +16,6 @@ class LaporanController extends Controller
         $m = (int) now()->month;
         $y = (int) now()->year;
 
-        // 1. Revenue bulan ini & lalu (PAYMENT web)
         $totalRevenueBulanIni = (float) DB::selectOne("
             SELECT COALESCE(SUM(JUMLAH), 0) AS TOTAL FROM PAYMENT
             WHERE STATUS = 'approved'
@@ -43,7 +38,6 @@ class LaporanController extends Controller
             $revenueGrowthHint = 'Bulan berjalan';
         }
 
-        // 2. Order bulan ini (MST_ORD_JUAL)
         $orderAgg = DB::selectOne("
             SELECT COUNT(*) AS JML, COALESCE(SUM(TOTAL), 0) AS TOTAL
             FROM MST_ORD_JUAL
@@ -68,7 +62,6 @@ class LaporanController extends Controller
         $aov = $totalOrderDisetujui > 0 ? $orderAmount / $totalOrderDisetujui : 0;
         $aovGrowthHint = 'AOV bulan ini';
 
-        // 3. Kunjungan selesai bulan ini (KUNJUNGAN web)
         $totalVisitsThisMonth = (int) DB::selectOne("
             SELECT COUNT(*) AS JML FROM KUNJUNGAN
             WHERE EXTRACT(MONTH FROM TANGGAL) = {$m} AND EXTRACT(YEAR FROM TANGGAL) = {$y}
@@ -84,7 +77,6 @@ class LaporanController extends Controller
             ? round(($completedVisitsThisMonth / $totalVisitsThisMonth) * 100, 1)
             : 0;
 
-        // 4. Tren 6 bulan (omzet MST_ORD_JUAL)
         $monthlyTrendLabels = [];
         $monthlyTrendData = [];
 
@@ -102,7 +94,6 @@ class LaporanController extends Controller
             $monthlyTrendData[] = $rev;
         }
 
-        // 5. Top sales (REKAP_OMZET_EFF_CALL legacy)
         $topSalesData = collect(DB::select('
             SELECT FIRST 5 KD_PEG, TOTAL_OMZET FROM REKAP_OMZET_EFF_CALL
             ORDER BY TOTAL_OMZET DESC

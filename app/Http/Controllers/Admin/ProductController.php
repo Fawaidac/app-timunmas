@@ -11,9 +11,6 @@ use App\Models\WarehouseStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/**
- * CRUD Barang / Produk -> tabel BARANG (legacy Firebird) + stok di MUTASI_BARANG per gudang.
- */
 class ProductController extends Controller
 {
     public function index(Request $request)
@@ -68,7 +65,6 @@ class ProductController extends Controller
 
         $kdBrg = !empty($data['sku']) ? strtoupper(trim($data['sku'])) : Product::nextKdBrg('BRG');
 
-        // Lookup nama kategori & supplier
         $nmJns = null;
         $kdJns = $data['kd_jns_brg'] ?? null;
         if (!empty($kdJns)) {
@@ -142,7 +138,6 @@ class ProductController extends Controller
         $product = Product::where('KD_BRG', $kdBrg)->firstOrFail();
         $data = $request->validated();
 
-        // Lookup nama kategori & supplier
         $nmJns = $product->JNS_BRG;
         $kdJns = $data['kd_jns_brg'] ?? $product->KD_JNS_BRG;
         if (!empty($kdJns)) {
@@ -213,7 +208,6 @@ class ProductController extends Controller
             ->with('success', 'Barang berhasil dihapus.');
     }
 
-    /** Insert/update baris stok MUTASI_BARANG per gudang */
     private function upsertStock(string $gudang, string $kdBrg, float $qty, float $hargaBeli = 0): void
     {
         $rp = $qty * $hargaBeli;

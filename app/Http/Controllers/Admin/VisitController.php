@@ -7,9 +7,6 @@ use App\Models\SalesVisit;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
-/**
- * Kunjungan (admin) -> tabel KUNJUNGAN (web).
- */
 class VisitController extends Controller
 {
     public function index(Request $request)

@@ -26,25 +26,36 @@
         <input type="hidden" name="visit_id" value="{{ $visit->id }}">
         <input type="hidden" name="customer_id" value="{{ $visit->customer_id }}">
 
-        <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+        <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
             <div class="field">
                 <label>Customer</label>
-                <input type="text" class="form-control" value="{{ $visit->customer->name }}" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ $visit->customer->name }} ({{ $visit->customer->code }})" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
                 <label>Tanggal Order <span style="color:#ef4444;">*</span></label>
                 <input type="date" name="order_date" class="form-control" value="{{ old('order_date', date('Y-m-d')) }}" required>
             </div>
-            <div class="field">
-                <label>Jenis Pembayaran <span style="color:#ef4444;">*</span></label>
-                <select name="payment_type" id="payment_type" class="form-control" required>
-                    <option value="cash" {{ old('payment_type') === 'cash' ? 'selected' : '' }}>Cash</option>
-                    <option value="credit" {{ old('payment_type') === 'credit' ? 'selected' : '' }}>Kredit</option>
-                </select>
+        </div>
+        {{-- Payment default: KREDIT 7 hari --}}
+
+        <!-- Box Ringkasan Tanggungan / Piutang & Limit Customer (dari VW_PIUTANG) -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px; margin-bottom:20px;">
+            <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                <span>💳</span> INFORMASI PIUTANG & LIMIT CUSTOMER (VW_PIUTANG)
             </div>
-            <div class="field" id="termField">
-                <label>Tempo Pembayaran (hari) <span style="color:#ef4444;">*</span></label>
-                <input type="number" name="payment_term_days" class="form-control" value="{{ old('payment_term_days', 7) }}" min="1">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+                <div>
+                    <div style="font-size:11px; color:var(--muted);">Tanggungan / Sisa Piutang:</div>
+                    <div style="font-size:14px; font-weight:700; color:#b91c1c;">Rp {{ number_format($visit->customer->current_debt, 0, ',', '.') }}</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; color:var(--muted);">Plafon Kredit:</div>
+                    <div style="font-size:14px; font-weight:700; color:#0f766e;">{{ $visit->customer->credit_limit > 0 ? 'Rp ' . number_format($visit->customer->credit_limit, 0, ',', '.') : 'Tidak dibatasi' }}</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; color:var(--muted);">Sisa Limit Kredit:</div>
+                    <div style="font-size:14px; font-weight:700; color:#2563eb;">{{ $visit->customer->credit_limit > 0 ? 'Rp ' . number_format($visit->customer->remaining_limit, 0, ',', '.') : '—' }}</div>
+                </div>
             </div>
         </div>
 
@@ -55,14 +66,15 @@
             </div>
 
             <div style="overflow-x:auto;">
-                <table id="itemsTable" style="width:100%;font-size:13px;">
+                <table id="itemsTable" style="width:100%;font-size:13px;border-collapse:separate;border-spacing:0;">
                     <thead style="background:#fff;border-bottom:2px solid #e2e8f0;">
                         <tr>
-                            <th style="padding:10px;text-align:left;width:40%;">Produk</th>
-                            <th style="padding:10px;text-align:center;width:15%;">Qty</th>
-                            <th style="padding:10px;text-align:right;width:20%;">Harga</th>
-                            <th style="padding:10px;text-align:right;width:20%;">Subtotal</th>
-                            <th style="padding:10px;text-align:center;width:5%;">Aksi</th>
+                            <th style="padding:10px;text-align:left;width:36%;">Produk</th>
+                            <th style="padding:10px;text-align:left;width:18%;">Satuan</th>
+                            <th style="padding:10px;text-align:center;width:12%;">Qty</th>
+                            <th style="padding:10px;text-align:right;width:16%;">Harga Satuan</th>
+                            <th style="padding:10px;text-align:right;width:14%;">Subtotal</th>
+                            <th style="padding:10px;text-align:center;width:4%;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -71,20 +83,34 @@
                                 <select name="product_id[]" class="form-control product-select" required onchange="fillPrice(this)">
                                     <option value="">-- Pilih Produk --</option>
                                     @foreach($products as $product)
-                                        <option value="{{ $product->id }}" data-price="{{ $product->price }}" data-unit="{{ $product->unit }}">
-                                            {{ $product->name }} ({{ $product->sku }}) - Stok: {{ $product->warehouses->sum('pivot.stock_quantity') }} {{ $product->unit }}
+                                        @php
+                                            $totalStock = $product->warehouses->sum('pivot.stock_quantity');
+                                        @endphp
+                                        <option value="{{ $product->id }}" 
+                                                data-price="{{ $product->price }}" 
+                                                data-unit="{{ $product->unit }}" 
+                                                data-units='@json($product->units_options)'
+                                                data-stock="{{ $totalStock }}">
+                                            {{ $product->name }} ({{ $product->sku }}) - Stok: {{ $totalStock }} {{ $product->unit }}
                                         </option>
                                     @endforeach
                                 </select>
                             </td>
                             <td style="padding:8px;">
-                                <input type="number" name="quantity[]" class="form-control qty-input" value="1" min="1" required style="text-align:center;" oninput="calculate()">
+                                <select name="unit[]" class="form-control unit-select" required onchange="onUnitChange(this)">
+                                    <option value="">-- Satuan --</option>
+                                </select>
+                                <input type="hidden" name="sat_ke[]" class="sat-ke-input" value="1">
+                                <input type="hidden" name="kapasitas[]" class="kapasitas-input" value="1">
+                            </td>
+                            <td style="padding:8px;">
+                                <input type="number" name="quantity[]" class="form-control qty-input" value="1" min="1" required style="text-align:center;" oninput="validateQty(this)">
                             </td>
                             <td style="padding:8px;">
                                 <input type="number" name="price[]" class="form-control price-input" value="0" min="0" step="0.01" required style="text-align:right;" oninput="calculate()">
                             </td>
                             <td style="padding:8px;">
-                                <input type="text" class="form-control subtotal-display" value="0" readonly style="text-align:right;background:#f9fafb;">
+                                <input type="text" class="form-control subtotal-display" value="0" readonly style="text-align:right;background:#f9fafb;font-weight:600;">
                             </td>
                             <td style="padding:8px;text-align:center;">
                                 <button type="button" onclick="removeRow(this)" class="button" style="padding:4px 8px;font-size:11px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;">✕</button>
@@ -96,7 +122,7 @@
 
             <div style="margin-top:16px;padding-top:16px;border-top:2px solid #e2e8f0;display:flex;justify-content:flex-end;align-items:center;gap:16px;">
                 <span style="font-size:15px;font-weight:600;color:var(--ink);">Total Order:</span>
-                <input type="text" id="totalDisplay" class="form-control" value="Rp 0" readonly style="width:200px;text-align:right;font-size:16px;font-weight:700;color:var(--orange-600);background:#fff7ed;border:2px solid #fed7aa;">
+                <input type="text" id="totalDisplay" class="form-control" value="Rp 0" readonly style="width:220px;text-align:right;font-size:16px;font-weight:700;color:var(--orange-600);background:#fff7ed;border:2px solid #fed7aa;">
             </div>
         </div>
 
@@ -109,22 +135,98 @@
 
 @push('scripts')
 <script>
-// Toggle payment term field
-document.getElementById('payment_type').addEventListener('change', function() {
-    const termField = document.getElementById('termField');
-    termField.style.display = this.value === 'credit' ? 'block' : 'none';
-});
-
-// Initial check
-if (document.getElementById('payment_type').value === 'credit') {
-    document.getElementById('termField').style.display = 'block';
-}
 
 function fillPrice(select) {
     const row = select.closest('tr');
     const option = select.options[select.selectedIndex];
-    const price = option.dataset.price || 0;
+    const unitSelect = row.querySelector('.unit-select');
+    
+    if (!option || !option.value) {
+        unitSelect.innerHTML = '<option value="">-- Satuan --</option>';
+        row.querySelector('.price-input').value = 0;
+        row.querySelector('.sat-ke-input').value = 1;
+        row.querySelector('.kapasitas-input').value = 1;
+        calculate();
+        return;
+    }
+    
+    let units = [];
+    try {
+        units = JSON.parse(option.dataset.units || '[]');
+    } catch (e) {
+        units = [{ sat_ke: 1, satuan: option.dataset.unit || 'PCS', kapasitas: 1, harga: parseFloat(option.dataset.price) || 0 }];
+    }
+    
+    unitSelect.innerHTML = '';
+    units.forEach((u, index) => {
+        const opt = document.createElement('option');
+        opt.value = u.satuan;
+        opt.textContent = `${u.satuan}${u.kapasitas > 1 ? ' (' + u.kapasitas + ' PCS)' : ''}`;
+        opt.dataset.price = u.harga;
+        opt.dataset.capacity = u.kapasitas;
+        opt.dataset.satke = u.sat_ke;
+        unitSelect.appendChild(opt);
+    });
+    
+    onUnitChange(unitSelect);
+}
+
+function onUnitChange(unitSelect) {
+    const row = unitSelect.closest('tr');
+    const opt = unitSelect.options[unitSelect.selectedIndex];
+    if (!opt) return;
+    
+    const price = parseFloat(opt.dataset.price) || 0;
+    const capacity = parseFloat(opt.dataset.capacity) || 1;
+    const satKe = parseInt(opt.dataset.satke) || 1;
+    
     row.querySelector('.price-input').value = price;
+    row.querySelector('.sat-ke-input').value = satKe;
+    row.querySelector('.kapasitas-input').value = capacity;
+    
+    const prodSelect = row.querySelector('.product-select');
+    const prodOpt = prodSelect.options[prodSelect.selectedIndex];
+    const totalStockPcs = prodOpt ? (parseFloat(prodOpt.dataset.stock) || 0) : 0;
+    
+    const qtyInput = row.querySelector('.qty-input');
+    if (capacity > 0) {
+        const maxInThisUnit = Math.floor(totalStockPcs / capacity);
+        qtyInput.setAttribute('max', maxInThisUnit > 0 ? maxInThisUnit : 0);
+    }
+    
+    calculate();
+}
+
+function validateQty(input) {
+    const row = input.closest('tr');
+    const select = row.querySelector('.product-select');
+    const option = select.options[select.selectedIndex];
+    const unitSelect = row.querySelector('.unit-select');
+    const unitOpt = unitSelect.options[unitSelect.selectedIndex];
+    
+    if (!option || !option.value) return;
+
+    const totalStockPcs = parseFloat(option.dataset.stock) || 0;
+    const capacity = unitOpt ? (parseFloat(unitOpt.dataset.capacity) || 1) : 1;
+    const maxQtyInUnit = Math.floor(totalStockPcs / capacity);
+    let currentQty = parseFloat(input.value) || 0;
+
+    if (totalStockPcs <= 0) {
+        Swal.fire({ icon: 'warning', title: 'Stok Kosong', text: `Stok produk "${option.text.split('-')[0].trim()}" sedang KOSONG (0)!` });
+        input.value = 0;
+        calculate();
+        return;
+    }
+
+    if (currentQty > maxQtyInUnit) {
+        Swal.fire({ icon: 'warning', title: 'Stok Tidak Cukup', text: `Jumlah melebihi stok yang tersedia! Maksimal hanya ${maxQtyInUnit} ${unitOpt ? unitOpt.value : ''} (${totalStockPcs} PCS).` });
+        input.value = maxQtyInUnit > 0 ? maxQtyInUnit : 1;
+    }
+
+    if (currentQty < 1 && maxQtyInUnit > 0) {
+        input.value = 1;
+    }
+
     calculate();
 }
 
@@ -150,9 +252,15 @@ function addRow() {
     const newRow = firstRow.cloneNode(true);
     
     newRow.querySelector('.product-select').value = '';
+    const unitSel = newRow.querySelector('.unit-select');
+    if (unitSel) {
+        unitSel.innerHTML = '<option value="">-- Satuan --</option>';
+    }
+    newRow.querySelector('.sat-ke-input').value = 1;
+    newRow.querySelector('.kapasitas-input').value = 1;
     newRow.querySelector('.qty-input').value = 1;
     newRow.querySelector('.price-input').value = 0;
-    newRow.querySelector('.subtotal-display').value = 0;
+    newRow.querySelector('.subtotal-display').value = '0';
     
     tbody.appendChild(newRow);
     calculate();

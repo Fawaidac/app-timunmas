@@ -7,10 +7,6 @@ use App\Http\Requests\Admin\StoreWarehouseRequest;
 use App\Http\Requests\Admin\UpdateWarehouseRequest;
 use App\Models\Warehouse;
 
-/**
- * CRUD gudang -> tabel GUDANG (legacy).
- * PK NM_GUDANG (string) — nama tidak boleh diubah setelah create (dipakai FK).
- */
 class WarehouseController extends Controller
 {
     public function index()
@@ -60,7 +56,6 @@ class WarehouseController extends Controller
         $newName = !empty($data['name']) ? mb_substr(trim($data['name']), 0, 50) : $nmGudang;
         $address = isset($data['address']) ? mb_substr(trim($data['address']), 0, 100) : null;
 
-        // Jika nama gudang diubah
         if ($newName !== $nmGudang) {
             $exists = Warehouse::where('NM_GUDANG', $newName)->exists();
             if ($exists) {
@@ -68,12 +63,10 @@ class WarehouseController extends Controller
             }
 
             \Illuminate\Support\Facades\DB::transaction(function () use ($nmGudang, $newName, $address) {
-                // Update tabel referensi
                 \Illuminate\Support\Facades\DB::table('MUTASI_BARANG')->where('GUDANG', $nmGudang)->update(['GUDANG' => $newName]);
                 \Illuminate\Support\Facades\DB::table('MST_ORD_JUAL')->where('GUDANG', $nmGudang)->update(['GUDANG' => $newName]);
                 \Illuminate\Support\Facades\DB::table('DET_ORD_JUAL')->where('GUDANG', $nmGudang)->update(['GUDANG' => $newName]);
 
-                // Update data gudang
                 \Illuminate\Support\Facades\DB::table('GUDANG')->where('NM_GUDANG', $nmGudang)->update([
                     'NM_GUDANG' => $newName,
                     'KET'       => $address,
@@ -94,7 +87,6 @@ class WarehouseController extends Controller
     {
         $warehouse = Warehouse::where('NM_GUDANG', $nmGudang)->firstOrFail();
 
-        // 1. Cek apakah ada stok fisik (QTY_AKHIR > 0)
         $adaStokFisik = \App\Models\WarehouseStock::where('GUDANG', $nmGudang)
             ->where('QTY_AKHIR', '>', 0)
             ->exists();
@@ -104,7 +96,6 @@ class WarehouseController extends Controller
                 ->with('error', 'Gudang masih memiliki sisa stok barang aktif dan tidak dapat dihapus.');
         }
 
-        // 2. Cek apakah pernah dipakai di riwayat transaksi order/penjualan
         $dipakai = \App\Models\SalesOrder::where('GUDANG', $nmGudang)->exists()
             || \App\Models\OrderItem::where('GUDANG', $nmGudang)->exists()
             || \Illuminate\Support\Facades\DB::table('DET_JUAL')->where('GUDANG', $nmGudang)->exists();
@@ -114,7 +105,6 @@ class WarehouseController extends Controller
                 ->with('error', 'Gudang memiliki riwayat transaksi dan tidak dapat dihapus.');
         }
 
-        // 3. Hapus entri stok kosong (0 qty) dan gudang dalam transaksi
         \Illuminate\Support\Facades\DB::transaction(function () use ($warehouse, $nmGudang) {
             \App\Models\WarehouseStock::where('GUDANG', $nmGudang)->delete();
             $warehouse->delete();

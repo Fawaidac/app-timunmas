@@ -99,7 +99,7 @@
                     <div style="grid-column:1/-1;">
                         <div style="font-size:11px;color:#9a3412;margin-bottom:2px;">Status</div>
                         <span style="background:#fed7aa;color:#9a3412;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">
-                            {{ ucfirst($visit->order->status) }}
+                            {{ $visit->order->badge_label }}
                         </span>
                     </div>
                 </div>

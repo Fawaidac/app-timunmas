@@ -9,24 +9,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-/**
- * User Management:
- * - Admin  → MST_PENGGUNA (NM_USER + KATAKUNCI)
- * - Sales  → PEGAWAI      (KD_PEG, NM_PEG, ALM_PEG, HP, E_MAIL, KD_WIL + KATAKUNCI)
- *
- * Halaman index menampilkan keduanya sekaligus.
- */
 class UserController extends Controller
 {
-    // ──────────────────────────────────────────────────────────
-    // INDEX – gabungkan kedua tabel
-    // ──────────────────────────────────────────────────────────
 
     public function index(Request $request)
     {
         $search = $request->filled('search') ? strtoupper(trim($request->search)) : null;
 
-        // Admin dari MST_PENGGUNA
         $admins = User::with('pegawai')
             ->when($search, fn ($q) => $q->whereRaw("UPPER(CAST(NM_USER AS VARCHAR(100))) LIKE ?", ["%{$search}%"]))
             ->orderBy('NM_USER')
@@ -48,7 +37,6 @@ class UserController extends Controller
                 '_model'       => $u,
             ]);
 
-        // Sales dari PEGAWAI
         $sales = Pegawai::salesAktif()
             ->when($search, fn ($q) => $q->where(function ($sub) use ($search) {
                 $term = "%{$search}%";
@@ -79,7 +67,6 @@ class UserController extends Controller
 
         $users = $admins->merge($sales);
 
-        // Manual paginate dari merged collection
         $perPage  = 15;
         $page     = (int) $request->input('page', 1);
         $total    = $users->count();
@@ -94,10 +81,6 @@ class UserController extends Controller
             'search' => $request->search,
         ]);
     }
-
-    // ──────────────────────────────────────────────────────────
-    // CREATE ADMIN
-    // ──────────────────────────────────────────────────────────
 
     public function createAdmin()
     {
@@ -128,16 +111,11 @@ class UserController extends Controller
             ->with('success', 'Akun admin berhasil dibuat.');
     }
 
-    // ──────────────────────────────────────────────────────────
-    // CREATE SALES (bisa buat pegawai baru / pilih pegawai existing)
-    // ──────────────────────────────────────────────────────────
-
     public function createSales()
     {
         $nextKdPeg = Pegawai::nextKdPeg();
         $wilayahList = DB::connection('firebird')->table('WILAYAH')->get();
 
-        // Pegawai aktif yang belum punya akun kata kunci
         $pegawaiTanpaAkun = Pegawai::salesAktif()
             ->where(fn ($q) => $q->whereNull('KATAKUNCI')->orWhere('KATAKUNCI', ''))
             ->orderBy('NM_PEG')
@@ -181,7 +159,6 @@ class UserController extends Controller
                 ->with('success', "Akun sales untuk [{$pegawai->NM_PEG}] berhasil diaktifkan.");
         }
 
-        // Mode New Pegawai
         $request->validate([
             'kd_peg'    => 'required|string|max:9|unique:PEGAWAI,KD_PEG',
             'nm_peg'    => 'required|string|max:50',
@@ -219,10 +196,6 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')
             ->with('success', "Pegawai sales baru [{$request->nm_peg}] berhasil dibuat.");
     }
-
-    // ──────────────────────────────────────────────────────────
-    // EDIT
-    // ──────────────────────────────────────────────────────────
 
     public function edit(Request $request, $id)
     {
@@ -286,7 +259,6 @@ class UserController extends Controller
                 ->with('success', "Data sales [{$pegawai->NM_PEG}] berhasil diperbarui.");
         }
 
-        // Admin update
         $request->validate([
             'nm_user'  => 'required|string|max:50|unique:MST_PENGGUNA,NM_USER,' . $id . ',NO_USER',
             'password' => 'nullable|string|min:4|max:32|confirmed',
@@ -306,9 +278,6 @@ class UserController extends Controller
             ->with('success', 'Akun admin berhasil diperbarui.');
     }
 
-    // ──────────────────────────────────────────────────────────
-    // DESTROY
-    // ──────────────────────────────────────────────────────────
 
     public function destroy(Request $request, $id)
     {
@@ -316,13 +285,11 @@ class UserController extends Controller
 
         if ($source === 'sales') {
             $pegawai = Pegawai::where('KD_PEG', $id)->firstOrFail();
-            // Cabut akses sales = hapus KATAKUNCI
             $pegawai->update(['KATAKUNCI' => null]);
             return redirect()->route('admin.users.index')
                 ->with('success', "Akses login sales [{$pegawai->NM_PEG}] berhasil dicabut.");
         }
 
-        // Jangan hapus diri sendiri
         if (Auth::guard('web')->id() == $id) {
             return redirect()->route('admin.users.index')
                 ->with('error', 'Tidak bisa menghapus akun sendiri.');

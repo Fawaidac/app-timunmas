@@ -108,7 +108,39 @@ class Customer extends FirebirdModel
 
     public function getCurrentDebtAttribute(): float
     {
-        return (float) ($this->attributes['JML_PIUTANG'] ?? ($this->attributes['jml_piutang'] ?? 0));
+        // Total piutang/tanggungan = Faktur Piutang (VW_PIUTANG) + Sales Order pending OS (MST_ORD_JUAL)
+        $invoiceDebt = 0.0;
+        if ($this->relationLoaded('invoices')) {
+            $invoiceDebt = (float) $this->invoices->where('SISA_PIUTANG', '>', 0.005)->sum('SISA_PIUTANG');
+        } else {
+            $invoiceDebt = (float) (DB::connection('firebird')
+                ->table('VW_PIUTANG')
+                ->where('KD_CUST', $this->KD_CUST)
+                ->where('SISA_PIUTANG', '>', 0.005)
+                ->sum('SISA_PIUTANG') ?? 0);
+        }
+
+        $orderDebt = 0.0;
+        if ($this->relationLoaded('orders')) {
+            $orderDebt = (float) $this->orders->where('ST_JADI', 'OS')->sum('TOTAL');
+        } else {
+            $orderDebt = (float) (DB::connection('firebird')
+                ->table('MST_ORD_JUAL')
+                ->where('KD_CUST', $this->KD_CUST)
+                ->where('ST_JADI', 'OS')
+                ->sum('TOTAL') ?? 0);
+        }
+
+        return $invoiceDebt + $orderDebt;
+    }
+
+    public function getRemainingLimitAttribute(): float
+    {
+        $limit = $this->credit_limit;
+        if ($limit <= 0) {
+            return 0;
+        }
+        return max(0, $limit - $this->current_debt);
     }
 
     public function getCreditLimitAttribute(): float

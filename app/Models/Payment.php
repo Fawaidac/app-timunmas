@@ -102,6 +102,11 @@ class Payment extends FirebirdModel
         return $this->NOMOR;
     }
 
+    public function getStatusAttribute()
+    {
+        return $this->attributes['STATUS'] ?? ($this->attributes['status'] ?? null);
+    }
+
     /* Relasi */
     public function invoice()
     {
@@ -113,18 +118,9 @@ class Payment extends FirebirdModel
         return $this->belongsTo(Customer::class, 'KD_CUST', 'KD_CUST');
     }
 
-    public function getSalesAttribute()
+    public function sales()
     {
-        if (! $this->KD_PEG) {
-            return null;
-        }
-
-        $p = Pegawai::find($this->KD_PEG);
-
-        return (object) [
-            'name' => $p->NM_PEG ?? $this->KD_PEG,
-            'code' => $this->KD_PEG,
-        ];
+        return $this->belongsTo(Pegawai::class, 'KD_PEG', 'KD_PEG');
     }
 
     public function approver()

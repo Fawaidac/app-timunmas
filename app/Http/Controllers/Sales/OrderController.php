@@ -13,11 +13,6 @@ use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Sales Order -> MST_ORD_JUAL + DET_ORD_JUAL (legacy).
- * Nomor NO_ENT dibangkitkan web dengan pola desktop: OJYYMM/seri/urut,
- * urut = MAX(urut)+1 per bulan (dalam transaksi).
- */
 class OrderController extends Controller
 {
     private function salesKdPeg(): ?string
@@ -25,13 +20,18 @@ class OrderController extends Controller
         return auth()->user()->KD_PEG ?: null;
     }
 
+    private function salesKdUser(): string
+    {
+        return (string) auth()->user()->NM_USER;
+    }
+
     private function scoped()
     {
-        return SalesOrder::when(
-            $this->salesKdPeg(),
-            fn ($q, $p) => $q->where('KD_PEG', $p),
-            fn ($q) => $q->whereRaw('1=0')
-        );
+        $kdPeg = $this->salesKdPeg();
+        if ($kdPeg) {
+            return SalesOrder::where('KD_PEG', $kdPeg);
+        }
+        return SalesOrder::where('KD_USER', $this->salesKdUser());
     }
 
     public function index(Request $request)
@@ -53,7 +53,11 @@ class OrderController extends Controller
         $selectedCustomerId = $request->query('customer_id');
         $selectedVisitId = $request->query('visit_id');
 
-        return view('sales.order.create-standalone', compact('customers', 'products', 'selectedCustomerId', 'selectedVisitId'));
+        $selectedCustomer = $selectedCustomerId 
+            ? ($customers->firstWhere('id', $selectedCustomerId) ?? $customers->firstWhere('KD_CUST', $selectedCustomerId) ?? Customer::find($selectedCustomerId))
+            : null;
+
+        return view('sales.order.create-standalone', compact('customers', 'products', 'selectedCustomerId', 'selectedVisitId', 'selectedCustomer'));
     }
 
     public function show($id)
@@ -66,7 +70,6 @@ class OrderController extends Controller
 
     public function store(StoreOrderRequest $request)
     {
-        // Proteksi duplikat (double-submit): order identik < 2 menit.
         $total = 0;
         foreach ($request->product_id as $i => $pid) {
             $total += (float) $request->quantity[$i] * (float) $request->price[$i];
@@ -100,26 +103,47 @@ class OrderController extends Controller
                 'KD_PEG'    => $this->salesKdPeg(),
                 'KD_USER'   => mb_substr((string) auth()->user()->NM_USER, 0, 32),
                 'ST_JADI'   => 'OS',
-                'JNS_BYR'   => $request->payment_type === 'cash' ? 'TUNAI' : 'KREDIT',
-                'TOP'       => $request->payment_type === 'cash' ? 0 : (int) ($request->payment_term_days ?? 7),
+                'JNS_BYR'   => 'KREDIT',
+                'TOP'       => 7,
                 'GUDANG'    => $gudang,
             ]);
 
+            $maxNomor = (int) (DB::connection('firebird')->table('DET_ORD_JUAL')->max('NOMOR') ?? 0);
             foreach ($request->product_id as $index => $kdBrg) {
                 $product = Product::find($kdBrg);
-                $sub = (float) $request->quantity[$index] * (float) $request->price[$index];
+                $qty = (float) $request->quantity[$index];
+                $price = (float) $request->price[$index];
+                $sub = $qty * $price;
+                $maxNomor++;
+
+                $satuan = $request->unit[$index] ?? $product->unit ?? 'PCS';
+                $satKe = (int) ($request->sat_ke[$index] ?? 1);
+                $kapasitas = (float) ($request->kapasitas[$index] ?? 1);
+                if ($kapasitas <= 0) {
+                    $kapasitas = 1;
+                }
+                $jmlTur = (float) ($qty * $kapasitas);
 
                 OrderItem::create([
+                    'NOMOR'     => $maxNomor,
                     'NO_ENT'    => $noEnt,
                     'NMR'       => $index + 1,
                     'KD_BRG'    => $kdBrg,
-                    'NM_BRG'    => mb_substr((string) $product->NM_BRG, 0, 50),
-                    'SATUAN'    => mb_substr((string) ($request->unit[$index] ?? $product->unit), 0, 5),
-                    'JUMLAH'    => (float) $request->quantity[$index],
-                    'HARGA'     => (float) $request->price[$index],
+                    'KD_BRG_1'  => $kdBrg,
+                    'NM_BRG'    => mb_substr((string) ($product->NM_BRG ?? ''), 0, 50),
+                    'SATUAN'    => mb_substr((string) $satuan, 0, 5),
+                    'SAT_KE'    => $satKe,
+                    'JUMLAH'    => $qty,
+                    'HARGA'     => $price,
+                    'DISC1'     => 0,
+                    'DISC2'     => 0,
+                    'DISC_RP'   => 0,
                     'TOTAL'     => $sub,
                     'SUB_TOTAL' => $sub,
-                    'GUDANG'    => $gudang,
+                    'JML_TUR'   => $jmlTur,
+                    'JML_KIRIM' => 0,
+                    'SAK'       => 0,
+                    'HPP'       => 0,
                 ]);
             }
 
@@ -134,6 +158,15 @@ class OrderController extends Controller
             return $noEnt;
         });
 
+        \App\Services\NotificationService::send([
+            'type'        => 'new_order',
+            'target_role' => 'admin',
+            'title'       => 'Sales Order Baru',
+            'message'     => 'Sales ' . \App\Helpers\SalesHelper::nama() . ' membuat order baru ' . $order . ' (Total: Rp ' . number_format($total, 0, ',', '.') . ')',
+            'url'         => route('admin.order.show', $order),
+            'icon'        => '📦',
+        ]);
+
         if ($request->visit_id) {
             return redirect()->route('sales.kunjungan.show', $request->visit_id)
                 ->with('success', 'Sales Order berhasil dibuat. Nomor: ' . $order);
@@ -143,10 +176,6 @@ class OrderController extends Controller
             ->with('success', 'Sales Order berhasil dibuat. Nomor: ' . $order);
     }
 
-    /**
-     * Nomor order pola desktop: OJYYMM/seri/urut (urut = MAX+1 per bulan).
-     * Contoh terverifikasi: OJ2608/001/00027.
-     */
     private function generateNoEnt(\Carbon\Carbon $tanggal): string
     {
         $prefix = 'OJ' . $tanggal->format('ym') . '/001/';

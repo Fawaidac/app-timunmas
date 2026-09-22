@@ -132,4 +132,15 @@ class SalesOrder extends FirebirdModel
             'code' => $this->KD_PEG,
         ];
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'NO_ENT', 'NO_ENT');
+    }
+
+    public function latestPayment()
+    {
+        return $this->hasOne(Payment::class, 'NO_ENT', 'NO_ENT')
+            ->orderBy('NOMOR', 'desc');
+    }
 }

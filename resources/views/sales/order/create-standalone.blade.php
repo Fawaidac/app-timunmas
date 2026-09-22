@@ -124,35 +124,64 @@
     <form action="{{ route('sales.order.store') }}" method="POST" id="orderForm" onsubmit="return submitOrderForm(this);">
         @csrf
         <input type="hidden" name="visit_id" value="{{ $selectedVisitId ?? '' }}">
-        <input type="hidden" name="customer_id" value="{{ $selectedCustomerId ?? '' }}">
+        
         <!-- Grid Form Atas -->
-        <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
             <div class="field">
                 <label style="font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block;">Customer <span style="color:#ef4444;">*</span></label>
-                <select name="customer_id" class="form-control custom-input" required>
-                    <option value="">-- Pilih Customer --</option>
-                    @foreach($customers as $customer)
-                        <option value="{{ $customer->id }}" 
-                            {{ (old('customer_id', $selectedCustomerId) == $customer->id) ? 'selected' : '' }}>
-                            {{ $customer->code }} - {{ $customer->name }}
-                        </option>
-                    @endforeach
-                </select>
+                @if($selectedCustomer)
+                    <input type="hidden" name="customer_id" value="{{ $selectedCustomer->id }}">
+                    <div style="position:relative;">
+                        <input type="text" class="form-control custom-input" value="{{ $selectedCustomer->code }} - {{ $selectedCustomer->name }}" readonly style="background:#f1f5f9; cursor:not-allowed; font-weight:600; color:#1e293b; padding-right:32px;">
+                        <span style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:12px; color:#64748b;" title="Customer otomatis terkunci dari URL">🔒</span>
+                    </div>
+                @else
+                    <select name="customer_id" id="customer_id" class="form-control custom-input" required onchange="updateCustomerInfo(this)">
+                        <option value="">-- Pilih Customer --</option>
+                        @foreach($customers as $customer)
+                            <option value="{{ $customer->id }}" 
+                                data-debt="{{ $customer->current_debt }}"
+                                data-limit="{{ $customer->credit_limit }}"
+                                data-top="{{ $customer->top_days }}"
+                                {{ (old('customer_id') == $customer->id) ? 'selected' : '' }}>
+                                {{ $customer->code }} - {{ $customer->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                @endif
             </div>
             <div class="field">
                 <label style="font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block;">Tanggal Order <span style="color:#ef4444;">*</span></label>
                 <input type="date" name="order_date" class="form-control custom-input" value="{{ old('order_date', date('Y-m-d')) }}" required>
             </div>
-            <div class="field">
-                <label style="font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block;">Jenis Pembayaran <span style="color:#ef4444;">*</span></label>
-                <select name="payment_type" id="payment_type" class="form-control custom-input" required>
-                    <option value="cash" {{ old('payment_type') === 'cash' ? 'selected' : '' }}>Cash</option>
-                    <option value="credit" {{ old('payment_type') === 'credit' ? 'selected' : '' }}>Kredit</option>
-                </select>
+        </div>
+        {{-- Payment default: KREDIT 7 hari --}}
+
+
+        <!-- Box Ringkasan Tanggungan / Piutang & Limit Customer (dari VW_PIUTANG) -->
+        <div id="customerInfoBox" style="{{ $selectedCustomer ? 'display:block;' : 'display:none;' }} background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px; margin-bottom:20px;">
+            <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                <span>💳</span> INFORMASI PIUTANG & LIMIT CUSTOMER (VW_PIUTANG)
             </div>
-            <div class="field" id="termField">
-                <label style="font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block;">Tempo Pembayaran (hari) <span style="color:#ef4444;">*</span></label>
-                <input type="number" name="payment_term_days" class="form-control custom-input" value="{{ old('payment_term_days', 7) }}" min="1">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+                <div>
+                    <div style="font-size:11px; color:var(--muted);">Tanggungan / Sisa Piutang:</div>
+                    <div id="custDebtDisplay" style="font-size:14px; font-weight:700; color:#b91c1c;">
+                        Rp {{ number_format($selectedCustomer?->current_debt ?? 0, 0, ',', '.') }}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size:11px; color:var(--muted);">Plafon Kredit:</div>
+                    <div id="custLimitDisplay" style="font-size:14px; font-weight:700; color:#0f766e;">
+                        {{ ($selectedCustomer && $selectedCustomer->credit_limit > 0) ? 'Rp ' . number_format($selectedCustomer->credit_limit, 0, ',', '.') : 'Tidak dibatasi' }}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size:11px; color:var(--muted);">Sisa Limit Kredit:</div>
+                    <div id="custRemainingLimitDisplay" style="font-size:14px; font-weight:700; color:#2563eb;">
+                        {{ ($selectedCustomer && $selectedCustomer->credit_limit > 0) ? 'Rp ' . number_format($selectedCustomer->remaining_limit, 0, ',', '.') : '—' }}
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -171,11 +200,12 @@
                 <table id="itemsTable" class="table" style="width:100%; border-collapse: separate; border-spacing: 0;">
                     <thead>
                         <tr>
-                            <th>Produk</th>
-                            <th>Qty</th>
-                            <th>Harga</th>
-                            <th>Subtotal</th>
-                            <th>Aksi</th>
+                            <th style="width:36%;">Produk</th>
+                            <th style="width:18%;">Satuan</th>
+                            <th style="width:12%;">Qty</th>
+                            <th style="width:16%;">Harga Satuan</th>
+                            <th style="width:14%;">Subtotal</th>
+                            <th style="width:4%; text-align:center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -190,11 +220,19 @@
                                         <option value="{{ $product->id }}" 
                                                 data-price="{{ $product->price }}" 
                                                 data-unit="{{ $product->unit }}" 
+                                                data-units='@json($product->units_options)'
                                                 data-stock="{{ $totalStock }}">
                                             {{ $product->name }} ({{ $product->sku }}) - Stok: {{ $totalStock }} {{ $product->unit }}
                                         </option>
                                     @endforeach
                                 </select>
+                            </td>
+                            <td style="padding: 10px 6px;">
+                                <select name="unit[]" class="form-control custom-input unit-select" required onchange="onUnitChange(this)">
+                                    <option value="">-- Satuan --</option>
+                                </select>
+                                <input type="hidden" name="sat_ke[]" class="sat-ke-input" value="1">
+                                <input type="hidden" name="kapasitas[]" class="kapasitas-input" value="1">
                             </td>
                             <td style="padding: 10px 6px;">
                                 <input type="number" name="quantity[]" class="form-control custom-input qty-input" value="1" min="1" required style="text-align: center;" oninput="validateQty(this);">
@@ -259,23 +297,47 @@ function initSelect2(element) {
     });
 }
 
+function updateCustomerInfo(select) {
+    const option = select.options[select.selectedIndex];
+    const box = document.getElementById('customerInfoBox');
+    
+    if (!option || !option.value) {
+        if (box) box.style.display = 'none';
+        return;
+    }
+    
+    const debt = parseFloat(option.dataset.debt) || 0;
+    const limit = parseFloat(option.dataset.limit) || 0;
+    const top = parseInt(option.dataset.top) || 0;
+    const remaining = limit > 0 ? Math.max(0, limit - debt) : 0;
+    
+    document.getElementById('custDebtDisplay').textContent = 'Rp ' + formatNumber(debt);
+    document.getElementById('custLimitDisplay').textContent = limit > 0 ? 'Rp ' + formatNumber(limit) : 'Tidak dibatasi';
+    document.getElementById('custRemainingLimitDisplay').textContent = limit > 0 ? 'Rp ' + formatNumber(remaining) : '—';
+    
+    if (top > 0 && $('#payment_term_days').val() == 7) {
+        $('#payment_term_days').val(top);
+    }
+    
+    if (box) box.style.display = 'block';
+}
+
 $(document).ready(function() {
     // Inisialisasi Select2 awal saat dokumen siap
     initSelect2();
 
-    // Toggle Payment Term
-    $('#payment_type').on('change', function() {
-        $('#termField').toggle(this.value === 'credit');
-    });
-
-    if ($('#payment_type').val() === 'credit') {
-        $('#termField').show();
+    // Trigger info customer awal jika sudah ada yang terpilih
+    const custSelect = document.getElementById('customer_id');
+    if (custSelect && custSelect.value) {
+        updateCustomerInfo(custSelect);
     }
+
 
     calculate();
 });
 
-// Fungsi Tambah Baris Baru (Fix Bug Select2)
+
+// Fungsi Tambah Baris Baru
 function addRow() {
     const tbody = document.querySelector('#itemsTable tbody');
     const firstRow = tbody.querySelector('tr');
@@ -296,6 +358,12 @@ function addRow() {
     // Hapus kontainer HTML sisa Select2 kloning jika terikut
     $(newRow).find('.select2-container').remove(); 
     
+    const unitSel = newRow.querySelector('.unit-select');
+    if (unitSel) {
+        unitSel.innerHTML = '<option value="">-- Satuan --</option>';
+    }
+    newRow.querySelector('.sat-ke-input').value = 1;
+    newRow.querySelector('.kapasitas-input').value = 1;
     newRow.querySelector('.qty-input').value = 1;
     newRow.querySelector('.price-input').value = 0;
     newRow.querySelector('.subtotal-display').value = "0";
@@ -313,7 +381,6 @@ function removeRow(btn) {
     const rows = document.querySelectorAll('#itemsTable tbody tr');
     if (rows.length > 1) {
         const row = $(btn).closest('tr');
-        // Destroy instance select2 baris yang akan dihapus
         row.find('.product-select').select2('destroy');
         row.remove();
         calculate();
@@ -325,47 +392,91 @@ function removeRow(btn) {
 function fillPrice(select) {
     const row = select.closest('tr');
     const option = select.options[select.selectedIndex];
+    const unitSelect = row.querySelector('.unit-select');
     
-    const price = option ? (option.dataset.price || 0) : 0;
-    const stock = option ? (parseFloat(option.dataset.stock) || 0) : 0;
-    
-    // Set harga
-    row.querySelector('.price-input').value = price;
-    
-    // Set max stok pada input qty
-    const qtyInput = row.querySelector('.qty-input');
-    if (option && option.value !== "") {
-        qtyInput.setAttribute('max', stock);
-    } else {
-        qtyInput.removeAttribute('max');
+    if (!option || !option.value) {
+        unitSelect.innerHTML = '<option value="">-- Satuan --</option>';
+        row.querySelector('.price-input').value = 0;
+        row.querySelector('.sat-ke-input').value = 1;
+        row.querySelector('.kapasitas-input').value = 1;
+        calculate();
+        return;
     }
     
-    validateQty(qtyInput);
+    let units = [];
+    try {
+        units = JSON.parse(option.dataset.units || '[]');
+    } catch (e) {
+        units = [{ sat_ke: 1, satuan: option.dataset.unit || 'PCS', kapasitas: 1, harga: parseFloat(option.dataset.price) || 0 }];
+    }
+    
+    unitSelect.innerHTML = '';
+    units.forEach((u, index) => {
+        const opt = document.createElement('option');
+        opt.value = u.satuan;
+        opt.textContent = `${u.satuan}${u.kapasitas > 1 ? ' (' + u.kapasitas + ' PCS)' : ''}`;
+        opt.dataset.price = u.harga;
+        opt.dataset.capacity = u.kapasitas;
+        opt.dataset.satke = u.sat_ke;
+        unitSelect.appendChild(opt);
+    });
+    
+    onUnitChange(unitSelect);
+}
+
+function onUnitChange(unitSelect) {
+    const row = unitSelect.closest('tr');
+    const opt = unitSelect.options[unitSelect.selectedIndex];
+    if (!opt) return;
+    
+    const price = parseFloat(opt.dataset.price) || 0;
+    const capacity = parseFloat(opt.dataset.capacity) || 1;
+    const satKe = parseInt(opt.dataset.satke) || 1;
+    
+    row.querySelector('.price-input').value = price;
+    row.querySelector('.sat-ke-input').value = satKe;
+    row.querySelector('.kapasitas-input').value = capacity;
+    
+    const prodSelect = row.querySelector('.product-select');
+    const prodOpt = prodSelect.options[prodSelect.selectedIndex];
+    const totalStockPcs = prodOpt ? (parseFloat(prodOpt.dataset.stock) || 0) : 0;
+    
+    const qtyInput = row.querySelector('.qty-input');
+    if (capacity > 0) {
+        const maxInThisUnit = Math.floor(totalStockPcs / capacity);
+        qtyInput.setAttribute('max', maxInThisUnit > 0 ? maxInThisUnit : 0);
+    }
+    
+    calculate();
 }
 
 function validateQty(input) {
     const row = input.closest('tr');
     const select = row.querySelector('.product-select');
     const option = select.options[select.selectedIndex];
+    const unitSelect = row.querySelector('.unit-select');
+    const unitOpt = unitSelect.options[unitSelect.selectedIndex];
     
     if (!option || !option.value) return;
 
-    const maxStock = parseFloat(option.dataset.stock) || 0;
+    const totalStockPcs = parseFloat(option.dataset.stock) || 0;
+    const capacity = unitOpt ? (parseFloat(unitOpt.dataset.capacity) || 1) : 1;
+    const maxQtyInUnit = Math.floor(totalStockPcs / capacity);
     let currentQty = parseFloat(input.value) || 0;
 
-    if (maxStock <= 0) {
+    if (totalStockPcs <= 0) {
         Swal.fire({ icon: 'warning', title: 'Stok Kosong', text: `Stok produk "${option.text.split('-')[0].trim()}" sedang KOSONG (0)!` });
         input.value = 0;
         calculate();
         return;
     }
 
-    if (currentQty > maxStock) {
-        Swal.fire({ icon: 'warning', title: 'Stok Tidak Cukup', text: `Jumlah melebihi stok yang tersedia! Maksimal stok hanya ${maxStock}.` });
-        input.value = maxStock;
+    if (currentQty > maxQtyInUnit) {
+        Swal.fire({ icon: 'warning', title: 'Stok Tidak Cukup', text: `Jumlah melebihi stok yang tersedia! Maksimal hanya ${maxQtyInUnit} ${unitOpt ? unitOpt.value : ''} (${totalStockPcs} PCS).` });
+        input.value = maxQtyInUnit > 0 ? maxQtyInUnit : 1;
     }
 
-    if (currentQty < 1 && maxStock > 0) {
+    if (currentQty < 1 && maxQtyInUnit > 0) {
         input.value = 1;
     }
 

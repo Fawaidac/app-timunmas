@@ -49,17 +49,17 @@
                         <td><b>{{ $order->order_number }}</b></td>
                         <td>{{ $order->customer->name }}</td>
                         <td>{{ \Carbon\Carbon::parse($order->order_date)->format('d M Y') }}</td>
-                        <td>{{ ucfirst($order->payment_type) }}{{ $order->payment_type === 'credit' ? ' (' . $order->payment_term_days . 'h)' : '' }}</td>
+                        <td>{{ ucfirst($order->payment_type) }}</td>
                         <td>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
                         <td>
-                            @if($order->status === 'pending')
-                                <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Pending</span>
-                            @elseif($order->status === 'approved')
-                                <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Approved</span>
-                            @elseif($order->status === 'processing')
-                                <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Processing</span>
+                            @if($order->status === 'OS')
+                                <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Order Baru (OS)</span>
+                            @elseif($order->status === 'INV')
+                                <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Sudah Faktur (INV)</span>
+                            @elseif($order->status === 'BATAL')
+                                <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Dibatalkan</span>
                             @else
-                                <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Rejected</span>
+                                <span style="background:#f1f5f9;color:#475569;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">{{ $order->badge_label }}</span>
                             @endif
                         </td>
                         <td>

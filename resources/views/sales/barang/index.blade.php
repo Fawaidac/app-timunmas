@@ -76,89 +76,124 @@
 @endpush
 
 @section('content')
-<!-- Form Pencarian Server-Side -->
-<form action="{{ route('sales.stok.index') }}" method="GET" class="toolbar">
-    <label class="search-box" style="width: 100%; max-width: 400px;">
-        <span>⌕</span>
-        <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama barang, SKU, atau kategori..." onchange="this.form.submit()">
-    </label>
-</form>
+<div class="section-head">
+    <h2>Pencarian Stok Barang</h2>
+    <p>Cek ketersediaan stok aktual per gudang, harga jual bertingkat, dan spesifikasi barang sebelum order.</p>
+</div>
+
+<!-- Form Pencarian & Filter Server-Side -->
+<div class="toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <form action="{{ route('sales.stok.index') }}" method="GET" style="display:flex;flex-wrap:wrap;gap:8px;flex:1;max-width:800px;">
+        <label class="search-box" style="flex:2;min-width:240px;">
+            <span>⌕</span>
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama barang, SKU, kategori, supplier..." onchange="this.form.submit()">
+        </label>
+
+        <select name="kategori" onchange="this.form.submit()" style="flex:1;min-width:140px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
+            <option value="">— Semua Kategori —</option>
+            @foreach($kategoriList as $k)
+                <option value="{{ trim($k->NM_JNS_BRG) }}" {{ request('kategori') == trim($k->NM_JNS_BRG) ? 'selected' : '' }}>
+                    {{ trim($k->NM_JNS_BRG) }}
+                </option>
+            @endforeach
+        </select>
+
+        <select name="supplier" onchange="this.form.submit()" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
+            <option value="">— Semua Supplier —</option>
+            @foreach($supplierList as $s)
+                <option value="{{ trim($s->KD_SUPPL) }}" {{ request('supplier') == trim($s->KD_SUPPL) ? 'selected' : '' }}>
+                    {{ trim($s->NM_SUPPL) }}
+                </option>
+            @endforeach
+        </select>
+    </form>
+</div>
 
 <div class="product-grid" id="product-grid">
     @forelse($products as $product)
-        <article class="product-card">
-            {{-- Placeholder image produk --}}
-            <div class="product-image" style="background:linear-gradient(135deg,#fff7ed,#fed7aa);border-radius:12px;width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:48px;">
-                📦
-            </div>
-            <h4 style="margin:0 0 4px;font-size:14px;font-weight:600;line-height:1.4;">{{ $product->name }}</h4>
-            <div class="sku" style="font-size:11px;color:var(--muted);margin-bottom:8px;">SKU: {{ $product->sku }}</div>
-            @if($product->category)
-                <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">
-                    <span style="background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;">{{ $product->category }}</span>
+        @php
+            $totalStok = $product->warehouses->sum('pivot.stock_quantity');
+            $isLowStock = ($totalStok <= ($product->STOK_MIN ?? 0) && ($product->STOK_MIN ?? 0) > 0);
+        @endphp
+        <article class="product-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+                {{-- Product Image Placeholder --}}
+                <div class="product-image" style="background:linear-gradient(135deg,#fff7ed,#fed7aa);border-radius:12px;width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:44px;position:relative;">
+                    📦
+                    <span class="badge {{ ($product->STS_AKTIF ?? 'AKTIF') === 'AKTIF' ? 'badge-success' : 'badge-danger' }}" style="position:absolute;top:8px;right:8px;font-size:10px;">
+                        {{ $product->STS_AKTIF ?? 'AKTIF' }}
+                    </span>
                 </div>
-            @endif
-            <div class="stock-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <div>
-                    <div style="font-size:12px;color:var(--muted);">Harga</div>
-                    <div style="font-size:15px;font-weight:700;color:var(--orange-600);">Rp {{ number_format($product->price, 0, ',', '.') }}</div>
+
+                {{-- Product Title & SKU --}}
+                <h4 style="margin:0 0 4px;font-size:14px;font-weight:700;line-height:1.4;color:var(--ink);" title="{{ $product->name }}">
+                    {{ Str::limit($product->name, 45) }}
+                </h4>
+                <div class="sku" style="font-size:11px;color:var(--muted);margin-bottom:6px;">
+                    SKU: <code>{{ $product->sku }}</code>
+                    @if($product->RAK)
+                        · Rak: <span>{{ $product->RAK }}</span>
+                    @endif
                 </div>
-                <div style="text-align:right;">
-                    <div style="font-size:12px;color:var(--muted);">Stok</div>
-                    <div style="font-size:15px;font-weight:700;color:var(--ink);">
-                        {{ $product->warehouses->sum('pivot.stock_quantity') }} {{ $product->unit }}
+
+                {{-- Category & Supplier Badges --}}
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+                    @if($product->category)
+                        <span style="background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">
+                            {{ $product->category }}
+                        </span>
+                    @endif
+                    @if($product->supplier_name)
+                        <span style="background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;" title="{{ $product->supplier_name }}">
+                            🏭 {{ Str::limit($product->supplier_name, 18) }}
+                        </span>
+                    @endif
+                </div>
+
+                {{-- Price & Stock Information --}}
+                <div class="stock-row" style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;background:#f8fafc;padding:10px;border-radius:10px;">
+                    <div>
+                        <div style="font-size:11px;color:var(--muted);">Harga Jual</div>
+                        <div style="font-size:15px;font-weight:700;color:var(--orange-600);">
+                            Rp {{ number_format($product->price, 0, ',', '.') }}
+                        </div>
+                        @if($product->HARGA_JL2 > 0)
+                            <div style="font-size:10px;color:var(--muted);margin-top:2px;">
+                                Grosir 2: Rp {{ number_format((float)$product->HARGA_JL2, 0, ',', '.') }}
+                            </div>
+                        @endif
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:11px;color:var(--muted);">Total Stok</div>
+                        <div style="font-size:15px;font-weight:700;color:{{ $isLowStock ? 'var(--danger)' : 'var(--ink)' }};">
+                            {{ number_format($totalStok, 0, ',', '.') }} <span style="font-size:12px;font-weight:500;">{{ $product->unit }}</span>
+                        </div>
+                        @if($isLowStock)
+                            <div style="font-size:10px;color:var(--danger);font-weight:600;margin-top:2px;">
+                                ⚠ Min. {{ (int) $product->STOK_MIN }}
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
-            @if($product->warehouses->isNotEmpty())
-                <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">
-                    📍 {{ $product->warehouses->first()->name }}
-                </div>
-            @endif
-            <div style="display:flex;gap:6px;">
-                <a href="{{ route('sales.stok.show', $product->id) }}" class="button button-soft" style="flex:1;padding:7px;font-size:11px;text-align:center;">Detail</a>
+
+            {{-- Action Buttons --}}
+            <div style="display:flex;gap:6px;align-items:center;padding-top:10px;border-top:1px solid #f1f5f9;margin-top:4px;">
+                <a href="{{ route('sales.stok.show', $product->sku) }}" class="button button-soft" style="flex:1;padding:8px;font-size:12px;text-align:center;font-weight:600;">
+                    🔍 Detail Stok & Harga
+                </a>
             </div>
         </article>
     @empty
-        <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--muted);">
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted);background:#fff;border-radius:16px;border:1px solid var(--line);">
             <div style="font-size:48px;margin-bottom:12px;">📦</div>
-            <p style="font-size:16px;font-weight:500;">Barang tidak ditemukan</p>
-            <p style="font-size:13px;">Coba kata kunci pencarian yang berbeda.</p>
+            <p style="font-size:16px;font-weight:600;color:var(--ink);">Barang tidak ditemukan</p>
+            <p style="font-size:13px;">Coba gunakan kata kunci pencarian yang berbeda atau reset filter.</p>
         </div>
     @endforelse
 </div>
 
-<!-- SECTION PAGINATION MODERN -->
-@if($products->hasPages())
-    <div class="pagination-wrapper">
-        <div class="pagination-info">
-            Menampilkan <b>{{ $products->firstItem() }}</b> - <b>{{ $products->lastItem() }}</b> dari total <b>{{ $products->total() }}</b> barang
-        </div>
+<!-- SECTION PAGINATION -->
+@include('partials.pagination', ['paginator' => $products, 'itemLabel' => 'barang'])
 
-        <ul class="pagination-container">
-            {{-- Tombol Previous --}}
-            @if ($products->onFirstPage())
-                <li class="page-item disabled"><span class="page-link">‹</span></li>
-            @else
-                <li class="page-item"><a class="page-link" href="{{ $products->previousPageUrl() }}" rel="prev">‹</a></li>
-            @endif
-
-            {{-- Angka Halaman --}}
-            @foreach ($products->getUrlRange(1, $products->lastPage()) as $page => $url)
-                @if ($page == $products->currentPage())
-                    <li class="page-item active"><span class="page-link">{{ $page }}</span></li>
-                @else
-                    <li class="page-item"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>
-                @endif
-            @endforeach
-
-            {{-- Tombol Next --}}
-            @if ($products->hasMorePages())
-                <li class="page-item"><a class="page-link" href="{{ $products->nextPageUrl() }}" rel="next">›</a></li>
-            @else
-                <li class="page-item disabled"><span class="page-link">›</span></li>
-            @endif
-        </ul>
-    </div>
-@endif
 @endsection

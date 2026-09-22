@@ -14,7 +14,7 @@ class StorePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'invoice_id' => 'required|exists:VW_PIUTANG,NO_ENT',
+            'invoice_id' => 'required|string',
             'payment_method' => 'required|in:cash,transfer,giro,other',
             'amount_paid' => 'required|numeric|min:0',
             'reference_number' => 'nullable|string|max:100',

@@ -11,9 +11,6 @@ use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Dashboard sales — sumber: KUNJUNGAN (web), MST_ORD_JUAL, VW_PIUTANG, PAYMENT.
- */
 class DashboardController extends Controller
 {
     public function index()
@@ -24,7 +21,6 @@ class DashboardController extends Controller
 
         $scopedPeg = fn ($q) => $kdPeg ? $q->where('KD_PEG', $kdPeg) : $q->whereRaw('1=0');
 
-        // Kunjungan hari ini
         $totalKunjunganHariIni = (int) SalesVisit::query()
             ->where($scopedPeg)
             ->whereRaw('CAST(TANGGAL AS DATE) = ?', [$today->toDateString()])
@@ -36,7 +32,6 @@ class DashboardController extends Controller
             ->whereRaw('CAST(TANGGAL AS DATE) = ?', [$today->toDateString()])
             ->count();
 
-        // Order hari ini & kemarin (MST_ORD_JUAL)
         $totalOrderHariIni = (float) DB::table('MST_ORD_JUAL')
             ->where($scopedPeg)
             ->whereRaw('CAST(TANGGAL AS DATE) = ?', [$today->toDateString()])
@@ -51,7 +46,6 @@ class DashboardController extends Controller
             ? (($totalOrderHariIni - $orderKemarin) / $orderKemarin) * 100
             : 0;
 
-        // Tagihan jatuh tempo (VW_PIUTANG)
         $jumlahTagihanJatuhTempo = (int) Invoice::query()
             ->where($scopedPeg)
             ->where('SISA_PIUTANG', '>', 0.005)
@@ -64,7 +58,6 @@ class DashboardController extends Controller
             ->whereRaw('CAST(TGL_JATUH_TEMPO AS DATE) <= ?', [$today->toDateString()])
             ->sum('SISA_PIUTANG');
 
-        // Pembayaran dititipkan (approved)
         $jumlahPembayaranDititipkan = (int) Payment::query()
             ->where($scopedPeg)
             ->where('STATUS', 'approved')
@@ -75,7 +68,6 @@ class DashboardController extends Controller
             ->where('STATUS', 'approved')
             ->sum('JUMLAH');
 
-        // Order terbaru
         $orderTerbaru = SalesOrder::with('customer')
             ->where($scopedPeg)
             ->orderBy('TANGGAL', 'desc')
@@ -94,7 +86,6 @@ class DashboardController extends Controller
                 return $order;
             });
 
-        // Rute kunjungan hari ini
         $ruteKunjungan = SalesVisit::with('customer')
             ->where($scopedPeg)
             ->whereRaw('CAST(TANGGAL AS DATE) = ?', [$today->toDateString()])

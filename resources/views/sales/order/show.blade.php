@@ -67,6 +67,7 @@
                 <thead style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
                     <tr>
                         <th style="padding:10px;text-align:left;">Produk</th>
+                        <th style="padding:10px;text-align:center;">Satuan</th>
                         <th style="padding:10px;text-align:center;">Qty</th>
                         <th style="padding:10px;text-align:right;">Harga</th>
                         <th style="padding:10px;text-align:right;">Subtotal</th>
@@ -76,10 +77,13 @@
                     @foreach($order->items as $item)
                         <tr style="border-bottom:1px solid #f1f5f9;">
                             <td style="padding:10px;">
-                                <div style="font-weight:600;">{{ $item->product->name ?? $item->NM_BRG ?? '-' }}</div>
-                                <div style="font-size:11px;color:var(--muted);">SKU: {{ $item->product->sku ?? $item->KD_BRG ?? '-' }}</div>
+                                <div style="font-weight:600;">{{ $item->NM_BRG ?? $item->product->name ?? '-' }}</div>
+                                <div style="font-size:11px;color:var(--muted);">SKU: {{ $item->KD_BRG ?? $item->product->sku ?? '-' }}</div>
                             </td>
-                            <td style="padding:10px;text-align:center;">{{ $item->quantity }} {{ $item->product->unit ?? $item->SATUAN ?? '' }}</td>
+                            <td style="padding:10px;text-align:center;">
+                                <span style="display:inline-block;background:#f1f5f9;border-radius:6px;padding:2px 10px;font-weight:600;font-size:12px;">{{ $item->SATUAN ?? $item->product->unit ?? '-' }}</span>
+                            </td>
+                            <td style="padding:10px;text-align:center;">{{ $item->quantity }}</td>
                             <td style="padding:10px;text-align:right;">Rp {{ number_format($item->price_per_unit, 0, ',', '.') }}</td>
                             <td style="padding:10px;text-align:right;font-weight:600;">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
                         </tr>
@@ -87,7 +91,7 @@
                 </tbody>
                 <tfoot style="background:#fff7ed;border-top:2px solid #fed7aa;">
                     <tr>
-                        <td colspan="3" style="padding:12px;text-align:right;font-size:15px;font-weight:700;color:var(--ink);">Total Order:</td>
+                        <td colspan="4" style="padding:12px;text-align:right;font-size:15px;font-weight:700;color:var(--ink);">Total Order:</td>
                         <td style="padding:12px;text-align:right;font-size:18px;font-weight:700;color:var(--orange-600);">
                             Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                         </td>
@@ -102,14 +106,14 @@
             <div style="width:64px;height:64px;background:linear-gradient(135deg,#fff7ed,#fed7aa);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;">
                 🛒
             </div>
-            @if($order->status === 'pending')
-                <span style="background:#fef3c7;color:#92400e;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Pending</span>
-            @elseif($order->status === 'approved')
-                <span style="background:#d1fae5;color:#065f46;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Approved</span>
-            @elseif($order->status === 'processing')
-                <span style="background:#dbeafe;color:#1e40af;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Processing</span>
+            @if($order->status === 'OS')
+                <span style="background:#fef3c7;color:#92400e;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Menunggu Faktur (OS)</span>
+            @elseif($order->status === 'INV')
+                <span style="background:#d1fae5;color:#065f46;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Sudah Jadi Faktur (INV)</span>
+            @elseif($order->status === 'BATAL')
+                <span style="background:#fee2e2;color:#991b1b;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Dibatalkan</span>
             @else
-                <span style="background:#fee2e2;color:#991b1b;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Rejected</span>
+                <span style="background:#f1f5f9;color:#475569;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">{{ $order->badge_label }}</span>
             @endif
         </div>
 

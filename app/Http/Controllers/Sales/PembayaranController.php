@@ -9,30 +9,38 @@ use App\Models\Invoice;
 use App\Models\SalesOrder;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Titip pembayaran (web) -> tabel PAYMENT (baru), status pending_approval.
- * Route /pembayaran/{orderId}: orderId = NO_ENT order (MST_ORD_JUAL);
- * faktur terkait dicari lewat MST_ORD_JUAL.NO_ENT_JUAL.
- */
 class PembayaranController extends Controller
 {
-    public function index($orderId)
+    public function index($id)
     {
-        $order = SalesOrder::with('customer')
-            ->where('KD_PEG', auth()->user()->KD_PEG)
-            ->where('NO_ENT', $orderId)
-            ->firstOrFail();
+        $invoice = Invoice::with(['customer', 'payments'])->where('NO_ENT', $id)->first();
+        $order = null;
 
-        $noFaktur = $order->NO_ENT_JUAL;
-        $invoice = $noFaktur ? Invoice::where('NO_ENT', $noFaktur)->first() : null;
+        if ($invoice) {
+            $customer = $invoice->customer;
+        } else {
+            $kdPeg = \App\Helpers\SalesHelper::kdPeg() ?: auth()->user()->KD_PEG;
+            $orderQuery = SalesOrder::with(['customer', 'items', 'payments'])->where('NO_ENT', $id);
+            if ($kdPeg) {
+                $orderQuery->where('KD_PEG', $kdPeg);
+            }
+            $order = $orderQuery->firstOrFail();
+            $customer = $order->customer;
+            $noFaktur = $order->NO_ENT_ORD ?? $order->NO_ENT_JUAL ?? null;
+            $invoice = $noFaktur ? Invoice::where('NO_ENT', $noFaktur)->first() : null;
+        }
 
-        return view('sales.pembayaran.index', compact('order', 'invoice'));
+        return view('sales.pembayaran.index', compact('order', 'invoice', 'customer'));
     }
 
     public function store(StorePaymentRequest $request)
     {
         $payment = DB::transaction(function () use ($request) {
-            $invoice = Invoice::where('NO_ENT', $request->invoice_id)->firstOrFail();
+            $invoice = Invoice::where('NO_ENT', $request->invoice_id)->first();
+            $order = null;
+            if (!$invoice) {
+                $order = SalesOrder::where('NO_ENT', $request->invoice_id)->firstOrFail();
+            }
 
             $noBukti = $this->generatePaymentNumber();
             $foto = null;
@@ -44,11 +52,15 @@ class PembayaranController extends Controller
                 $foto = 'payment_proofs/' . $filename;
             }
 
+            $noEnt  = $invoice ? $invoice->NO_ENT : $order->NO_ENT;
+            $kdCust = $invoice ? $invoice->KD_CUST : $order->KD_CUST;
+            $kdPeg  = \App\Helpers\SalesHelper::kdPeg() ?: (auth()->user()->KD_PEG ?? ($invoice ? $invoice->KD_PEG : $order->KD_PEG));
+
             Payment::create([
                 'NO_BUKTI' => $noBukti,
-                'NO_ENT'   => $invoice->NO_ENT,
-                'KD_CUST'  => $invoice->KD_CUST,
-                'KD_PEG'   => auth()->user()->KD_PEG,
+                'NO_ENT'   => $noEnt,
+                'KD_CUST'  => $kdCust,
+                'KD_PEG'   => $kdPeg,
                 'TANGGAL'  => now()->format('Y-m-d H:i:s'),
                 'METODE'   => $request->payment_method,
                 'JUMLAH'   => (float) $request->amount_paid,
@@ -56,6 +68,15 @@ class PembayaranController extends Controller
                 'FOTO'     => $foto,
                 'STATUS'   => 'pending_approval',
                 'CATATAN'  => $request->notes,
+            ]);
+
+            \App\Services\NotificationService::send([
+                'type'        => 'payment_pending',
+                'target_role' => 'admin',
+                'title'       => 'Titip Pembayaran Baru',
+                'message'     => 'Sales ' . \App\Helpers\SalesHelper::nama() . ' membuat titip pembayaran ' . $noBukti . ' (Rp ' . number_format($request->amount_paid, 0, ',', '.') . ')',
+                'url'         => route('admin.payments'),
+                'icon'        => '💳',
             ]);
 
             return $noBukti;

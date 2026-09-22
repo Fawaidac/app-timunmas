@@ -27,7 +27,8 @@ class OrderItem extends FirebirdModel
     {
         static::creating(function (self $item) {
             if (empty($item->NOMOR)) {
-                $item->NOMOR = (int) (DB::select('SELECT GEN_ID(DET_ORD_JUAL_NOMOR_GEN, 1) AS ID FROM RDB$DATABASE')[0]->ID ?? 0);
+                $max = (int) (DB::connection('firebird')->table('DET_ORD_JUAL')->max('NOMOR') ?? 0);
+                $item->NOMOR = $max + 1;
             }
         });
     }
@@ -54,7 +55,19 @@ class OrderItem extends FirebirdModel
 
     public function getSubtotalAttribute()
     {
-        return (float) ($this->SUB_TOTAL ?? 0);
+        $sub = (float) ($this->SUB_TOTAL ?? 0);
+        if ($sub > 0) {
+            return $sub;
+        }
+
+        $tot = (float) ($this->TOTAL ?? 0);
+        if ($tot > 0) {
+            return $tot;
+        }
+
+        $qty = (float) ($this->JUMLAH ?? 0);
+        $price = (float) ($this->HARGA ?? 0);
+        return $qty * $price;
     }
 
     public function getIdAttribute()

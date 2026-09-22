@@ -6,9 +6,6 @@ use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Laporan sales — sumber: KUNJUNGAN (web), MST_ORD_JUAL, PAYMENT (web).
- */
 class LaporanController extends Controller
 {
     public function index()
@@ -20,7 +17,6 @@ class LaporanController extends Controller
             ? " AND KD_PEG = '" . addcslashes($kdPeg, "'") . "'"
             : ' AND 1=0';
 
-        // 1. Kunjungan bulan ini
         $totalVisits = (int) DB::selectOne("
             SELECT COUNT(*) AS JML FROM KUNJUNGAN
             WHERE EXTRACT(MONTH FROM TANGGAL) = {$m}
@@ -38,7 +34,6 @@ class LaporanController extends Controller
 
         $productivity = $totalVisits > 0 ? round(($completedVisits / $totalVisits) * 100) : 0;
 
-        // 2. Strike rate: kunjungan completed yang punya order
         $visitWithOrderCount = (int) DB::selectOne("
             SELECT COUNT(*) AS JML FROM KUNJUNGAN
             WHERE STATUS = 'completed' AND NO_ENT_ORD IS NOT NULL
@@ -49,7 +44,6 @@ class LaporanController extends Controller
 
         $strikeRate = $completedVisits > 0 ? round(($visitWithOrderCount / $completedVisits) * 100) : 0;
 
-        // 3. AOV: order bulan ini (MST_ORD_JUAL)
         $agg = DB::selectOne("
             SELECT COUNT(*) AS JML, COALESCE(SUM(TOTAL), 0) AS TOTAL
             FROM MST_ORD_JUAL
@@ -62,7 +56,6 @@ class LaporanController extends Controller
         $totalOrderAmount = (float) $agg->TOTAL;
         $averageOrder = $totalOrderCount > 0 ? ($totalOrderAmount / $totalOrderCount) : 0;
 
-        // 4. Collection rate (PAYMENT web)
         $totalApprovedPayments = (float) DB::selectOne("
             SELECT COALESCE(SUM(JUMLAH), 0) AS TOTAL FROM PAYMENT
             WHERE STATUS = 'approved'
@@ -73,7 +66,6 @@ class LaporanController extends Controller
 
         $collectionRate = $totalOrderAmount > 0 ? round(($totalApprovedPayments / $totalOrderAmount) * 100) : 0;
 
-        // 5. Tren mingguan
         $weeklySalesLabels = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'];
         $weeklySalesData = [0, 0, 0, 0];
 
@@ -90,7 +82,6 @@ class LaporanController extends Controller
             }
         }
 
-        // 6. Komposisi tujuan kunjungan
         $purposeCounts = [];
         foreach (DB::select("
             SELECT TUJUAN, COUNT(*) AS TOTAL FROM KUNJUNGAN

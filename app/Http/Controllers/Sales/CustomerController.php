@@ -8,30 +8,17 @@ use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Customer management untuk Sales.
- * - Index: hanya customer milik sales yang login (WHERE KD_PEG = auth user)
- * - Create/Store: KD_PEG & NM_PEG otomatis dari user yang login
- * - Edit/Update: hanya boleh edit customer milik sendiri
- * - Tidak ada delete (hanya admin yang boleh)
- */
 class CustomerController extends Controller
 {
-    /** Pegawai (model) yang sedang login */
     private function salesPegawai()
     {
         return SalesHelper::pegawai();
     }
 
-    /** KD_PEG sales yang sedang login */
     private function kdPeg(): string
     {
         return SalesHelper::kdPeg() ?? '';
     }
-
-    // ──────────────────────────────────────────────────────────
-    // INDEX – tampilkan hanya customer milik sales yang login
-    // ──────────────────────────────────────────────────────────
 
     public function index(Request $request)
     {
@@ -57,10 +44,6 @@ class CustomerController extends Controller
         return view('sales.customer.index', compact('customers', 'sales'));
     }
 
-    // ──────────────────────────────────────────────────────────
-    // CREATE – form tambah customer baru
-    // ──────────────────────────────────────────────────────────
-
     public function create()
     {
         $sales       = $this->salesPegawai();
@@ -70,10 +53,6 @@ class CustomerController extends Controller
 
         return view('sales.customer.create', compact('sales', 'nextKdCust', 'wilayahList', 'kategoriList'));
     }
-
-    // ──────────────────────────────────────────────────────────
-    // STORE – simpan customer baru
-    // ──────────────────────────────────────────────────────────
 
     public function store(Request $request)
     {
@@ -102,7 +81,6 @@ class CustomerController extends Controller
             ? strtoupper(trim($validated['kd_cust']))
             : Customer::nextKdCust('WEB');
 
-        // Lookup nama Wilayah & Kategori
         $nmWil = null;
         if (!empty($validated['kd_wil'])) {
             $w = DB::connection('firebird')->table('WILAYAH')->where('KD_WIL', $validated['kd_wil'])->first();
@@ -128,7 +106,6 @@ class CustomerController extends Controller
             'KATEGORI'        => $nmKat,
             'KD_WIL'          => $validated['kd_wil'] ?? null,
             'WILAYAH'         => $nmWil,
-            // Otomatis dari user login
             'KD_PEG'          => $kdPeg,
             'NM_PEG'          => $sales?->NM_PEG ?? SalesHelper::nama(),
             'KRD_LIMIT'       => 0,
@@ -144,9 +121,6 @@ class CustomerController extends Controller
             ->with('success', "Customer [{$customer->NM_CUST}] berhasil ditambahkan.");
     }
 
-    // ──────────────────────────────────────────────────────────
-    // SHOW
-    // ──────────────────────────────────────────────────────────
 
     public function show($kdCust)
     {
@@ -160,9 +134,6 @@ class CustomerController extends Controller
         return view('sales.customer.show', compact('customer', 'sales'));
     }
 
-    // ──────────────────────────────────────────────────────────
-    // EDIT / UPDATE
-    // ──────────────────────────────────────────────────────────
 
     public function edit($kdCust)
     {
@@ -200,7 +171,6 @@ class CustomerController extends Controller
             'nm_cust.required' => 'Nama customer wajib diisi.',
         ]);
 
-        // Lookup nama Wilayah & Kategori jika berubah
         $nmWil = $customer->WILAYAH;
         if (isset($validated['kd_wil']) && $validated['kd_wil'] !== $customer->KD_WIL) {
             $w = DB::connection('firebird')->table('WILAYAH')->where('KD_WIL', $validated['kd_wil'])->first();

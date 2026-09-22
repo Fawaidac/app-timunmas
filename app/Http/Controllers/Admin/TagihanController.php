@@ -9,9 +9,6 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Tagihan (admin) = piutang dari VW_PIUTANG (keputusan poin #1).
- */
 class TagihanController extends Controller
 {
     public function index(Request $request)
@@ -19,7 +16,6 @@ class TagihanController extends Controller
         $today = Carbon::today()->toDateString();
         $todayCarbon = Carbon::today();
 
-        // 1. Agregat statistik via database query efisien (tanpa memuat semua baris ke RAM)
         $totalPiutang = (float) (DB::table('VW_PIUTANG')
             ->where('SISA_PIUTANG', '>', 0.005)
             ->sum('SISA_PIUTANG') ?? 0);
@@ -66,13 +62,12 @@ class TagihanController extends Controller
             'overdue'        => $overdueCount,
         ];
 
-        // 2. Query invoice terpaginasi
         $query = Invoice::with('customer')
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = strtoupper($request->search);
                 $q->where(function ($sq) use ($s) {
-                    $sq->whereRaw('UPPER(NO_ENT) LIKE ?', ["%{$s}%"])
-                        ->orWhereRaw('UPPER(KD_CUST) LIKE ?', ["%{$s}%"]);
+                    $sq->whereRaw('UPPER(CAST(NO_ENT AS VARCHAR(100))) LIKE ?', ["%{$s}%"])
+                        ->orWhereRaw('UPPER(CAST(KD_CUST AS VARCHAR(100))) LIKE ?', ["%{$s}%"]);
                 });
             })
             ->when($request->status === 'unpaid', function ($q) use ($today) {

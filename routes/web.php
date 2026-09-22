@@ -32,6 +32,12 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/select-pegawai', [AuthController::class, 'selectPegawai'])->name('auth.select-pegawai.post');
 });
 
+// Notification API routes
+Route::middleware(['auth:sales,web'])->group(function () {
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+});
+
 // Sales routes (protected)
 // Sales routes: bisa login via guard 'sales' (PEGAWAI) atau guard 'web' role=sales (MST_PENGGUNA)
 Route::middleware(['auth:sales,web', 'role:sales'])->prefix('sales')->name('sales.')->group(function () {

@@ -10,9 +10,6 @@ use App\Models\Pegawai;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/**
- * CRUD Customer / Pelanggan -> tabel CUSTOMER (legacy Firebird).
- */
 class CustomerController extends Controller
 {
     public function index(Request $request)
@@ -71,7 +68,6 @@ class CustomerController extends Controller
         $data = $request->validated();
         $kdCust = !empty($data['kd_cust']) ? strtoupper(trim($data['kd_cust'])) : Customer::nextKdCust('CUST');
 
-        // Lookup nama Wilayah, Kategori, Sales
         $nmWil = null;
         if (!empty($data['kd_wil'])) {
             $w = DB::connection('firebird')->table('WILAYAH')->where('KD_WIL', $data['kd_wil'])->first();
@@ -151,7 +147,6 @@ class CustomerController extends Controller
         $customer = Customer::where('KD_CUST', $kdCust)->firstOrFail();
         $data = $request->validated();
 
-        // Lookup nama Wilayah, Kategori, Sales
         $nmWil = $customer->WILAYAH;
         if (isset($data['kd_wil']) && $data['kd_wil'] !== $customer->KD_WIL) {
             $w = DB::connection('firebird')->table('WILAYAH')->where('KD_WIL', $data['kd_wil'])->first();
@@ -207,7 +202,6 @@ class CustomerController extends Controller
     {
         $customer = Customer::where('KD_CUST', $kdCust)->firstOrFail();
 
-        // Lindungi data: tolak hapus jika punya riwayat transaksi
         $punyaOrder = \App\Models\SalesOrder::where('KD_CUST', $kdCust)->exists()
             || DB::connection('firebird')->table('MST_ORD_JUAL')->where('KD_CUST', $kdCust)->exists();
 

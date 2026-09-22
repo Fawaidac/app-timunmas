@@ -10,10 +10,6 @@ use App\Models\SalesVisit;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 
-/**
- * Kunjungan sales -> tabel KUNJUNGAN (baru, khusus web).
- * Sales = kolom KD_PEG (tabel PEGAWAI), sesuai keputusan pemilik sistem.
- */
 class VisitController extends Controller
 {
     private function salesKdPeg(): ?string

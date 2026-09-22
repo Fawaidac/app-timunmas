@@ -132,6 +132,56 @@ class Product extends FirebirdModel
             });
     }
 
+    /** Daftar satuan dan konversi bertingkat (SATUAN1, SATUAN2, SATUAN3) */
+    public function getUnitsOptionsAttribute(): array
+    {
+        $options = [];
+        $basePrice = (float) ($this->HARGA_JL ?? 0);
+
+        if (!empty($this->SATUAN1)) {
+            $options[] = [
+                'sat_ke'    => 1,
+                'satuan'    => trim($this->SATUAN1),
+                'kapasitas' => 1,
+                'harga'     => $basePrice,
+            ];
+        }
+
+        if (!empty($this->SATUAN2)) {
+            $kap2 = (float) ($this->KAPASITAS2 > 0 ? $this->KAPASITAS2 : 1);
+            $hrg2 = (float) ($this->HARGA_JL2 > 0 ? $this->HARGA_JL2 : round($basePrice * $kap2));
+            $options[] = [
+                'sat_ke'    => 2,
+                'satuan'    => trim($this->SATUAN2),
+                'kapasitas' => $kap2,
+                'harga'     => $hrg2,
+            ];
+        }
+
+        if (!empty($this->SATUAN3)) {
+            $kap2 = (float) ($this->KAPASITAS2 > 0 ? $this->KAPASITAS2 : 1);
+            $kap3 = (float) ($this->KAPASITAS3 > 0 ? $this->KAPASITAS3 : 1) * $kap2;
+            $hrg3 = (float) ($this->HARGA_JL3 > 0 ? $this->HARGA_JL3 : round($basePrice * $kap3));
+            $options[] = [
+                'sat_ke'    => 3,
+                'satuan'    => trim($this->SATUAN3),
+                'kapasitas' => $kap3,
+                'harga'     => $hrg3,
+            ];
+        }
+
+        if (empty($options)) {
+            $options[] = [
+                'sat_ke'    => 1,
+                'satuan'    => 'PCS',
+                'kapasitas' => 1,
+                'harga'     => $basePrice,
+            ];
+        }
+
+        return $options;
+    }
+
     public function getUpdatedAtAttribute()
     {
         return null;
