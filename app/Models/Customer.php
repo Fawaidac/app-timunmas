@@ -108,7 +108,9 @@ class Customer extends FirebirdModel
 
     public function getCurrentDebtAttribute(): float
     {
-        // Total piutang/tanggungan = Faktur Piutang (VW_PIUTANG) + Sales Order pending OS (MST_ORD_JUAL)
+        // Total piutang/tanggungan = Faktur Piutang (VW_PIUTANG) + Sisa Sales Order OS KREDIT
+        // (order KREDIT yang ST_JADI='OS', sudah dikurangi pembayaran approved —
+        //  sama persis dengan logika kolom Sisa di halaman Tagihan).
         $invoiceDebt = 0.0;
         if ($this->relationLoaded('invoices')) {
             $invoiceDebt = (float) $this->invoices->where('SISA_PIUTANG', '>', 0.005)->sum('SISA_PIUTANG');
@@ -120,18 +122,45 @@ class Customer extends FirebirdModel
                 ->sum('SISA_PIUTANG') ?? 0);
         }
 
-        $orderDebt = 0.0;
+        return $invoiceDebt + $this->openOrderDebt();
+    }
+
+    /**
+     * Sisa order KREDIT yang belum jadi faktur (ST_JADI='OS'),
+     * sudah dikurangi pembayaran ber-STATUS 'approved' — konsisten dgn Tagihan.
+     */
+    private function openOrderDebt(): float
+    {
         if ($this->relationLoaded('orders')) {
-            $orderDebt = (float) $this->orders->where('ST_JADI', 'OS')->sum('TOTAL');
+            $orders = $this->orders
+                ->filter(fn ($o) => $o->ST_JADI === 'OS' && $o->JNS_BYR === 'KREDIT')
+                ->values();
         } else {
-            $orderDebt = (float) (DB::connection('firebird')
-                ->table('MST_ORD_JUAL')
+            $orders = DB::connection('firebird')->table('MST_ORD_JUAL')
                 ->where('KD_CUST', $this->KD_CUST)
                 ->where('ST_JADI', 'OS')
-                ->sum('TOTAL') ?? 0);
+                ->where('JNS_BYR', 'KREDIT')
+                ->get(['NO_ENT', 'TOTAL']);
         }
 
-        return $invoiceDebt + $orderDebt;
+        if ($orders->isEmpty()) {
+            return 0.0;
+        }
+
+        $paid = DB::connection('firebird')->table('PAYMENT')
+            ->whereIn('NO_ENT', $orders->pluck('NO_ENT')->all())
+            ->where('STATUS', 'approved')
+            ->groupBy('NO_ENT')
+            ->select('NO_ENT', DB::raw('SUM(JUMLAH) AS PAID'))
+            ->get()
+            ->keyBy('NO_ENT');
+
+        $debt = 0.0;
+        foreach ($orders as $order) {
+            $debt += max(0, (float) $order->TOTAL - (float) ($paid[$order->NO_ENT]->PAID ?? 0));
+        }
+
+        return $debt;
     }
 
     public function getRemainingLimitAttribute(): float
@@ -186,7 +215,7 @@ class Customer extends FirebirdModel
      |  Helper KD_CUST
      | ------------------------------------------------------------------ */
 
-    public static function nextKdCust(string $prefix = 'WEB'): string
+    public static function nextKdCust(string $prefix = 'CUST'): string
     {
         $prefix = strtoupper(trim($prefix));
         $prefixLen = strlen($prefix);

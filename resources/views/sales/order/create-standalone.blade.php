@@ -151,12 +151,24 @@
                 @endif
             </div>
             <div class="field">
-                <label style="font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block;">Tanggal Order <span style="color:#ef4444;">*</span></label>
+                <label style="font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block;">Tanggal Transaksi <span style="color:#ef4444;">*</span></label>
                 <input type="date" name="order_date" class="form-control custom-input" value="{{ old('order_date', date('Y-m-d')) }}" required>
             </div>
+            <div class="field">
+                <label style="font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block;">Tipe Pembayaran <span style="color:#ef4444;">*</span></label>
+                <select name="payment_type" id="payment_type" class="form-control custom-input" required onchange="togglePaymentMethod()">
+                    <option value="TUNAI" {{ old('payment_type') == 'TUNAI' ? 'selected' : '' }}>💵 Lunas — Pilih Cash / Transfer</option>
+                    <option value="KREDIT" {{ old('payment_type', 'KREDIT') == 'KREDIT' ? 'selected' : '' }}>⏳ Kredit / Tempo (Jatuh Tempo 7 Hari)</option>
+                </select>
+            </div>
+            <div class="field" id="paymentMethodField" style="display:none;">
+                <label style="font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block;">Metode Bayar (Lunas) <span style="color:#ef4444;">*</span></label>
+                <select name="payment_method" id="payment_method" class="form-control custom-input">
+                    <option value="cash" {{ old('payment_method', 'cash') == 'cash' ? 'selected' : '' }}>💵 Cash (Uang Tunai)</option>
+                    <option value="transfer" {{ old('payment_method') == 'transfer' ? 'selected' : '' }}>🏦 Transfer Bank</option>
+                </select>
+            </div>
         </div>
-        {{-- Payment default: KREDIT 7 hari --}}
-
 
         <!-- Box Ringkasan Tanggungan / Piutang & Limit Customer (dari VW_PIUTANG) -->
         <div id="customerInfoBox" style="{{ $selectedCustomer ? 'display:block;' : 'display:none;' }} background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px; margin-bottom:20px;">
@@ -190,7 +202,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <div>
                     <h5 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e293b;">Item Produk</h5>
-                    <p style="margin: 2px 0 0; font-size: 12px; color: #64748b;">Pilih barang dan atur kuantitas pesanan</p>
+                    <p style="margin: 2px 0 0; font-size: 12px; color: #64748b;">Pilih barang dan atur kuantitas penjualan</p>
                 </div>
                 <button type="button" onclick="addRow()" class="button button-soft" style="padding: 8px 14px; font-size: 12px; font-weight: 600; border-radius: 8px;">＋ Tambah Item</button>
             </div>
@@ -255,15 +267,17 @@
 
             <!-- Section Total -->
             <div style="margin-top: 20px; padding-top: 16px; border-top: 1px dashed #cbd5e1; display: flex; justify-content: flex-end; align-items: center; gap: 16px;">
-                <span style="font-size: 14px; font-weight: 600; color: #475569;">Total Order:</span>
+                <span style="font-size: 14px; font-weight: 600; color: #475569;">Total Transaksi:</span>
                 <input type="text" id="totalDisplay" class="form-control" value="Rp 0" readonly style="width: 220px; text-align: right; font-size: 18px; font-weight: 700; color: #ea580c; background: #fff7ed; border: 2px solid #ffedd5; border-radius: 10px; padding: 8px 12px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);">
             </div>
         </div>
 
         <!-- Tombol Aksi -->
         <div class="button-row" style="margin-top: 24px; display: flex; gap: 12px;">
-            <a href="{{ route('sales.kunjungan.index') }}" class="button button-soft" style="flex: 2; text-align: center; display: flex; align-items: center; justify-content: center; border-radius: 8px; text-decoration: none;">Batal</a>
-            <button type="submit" class="button button-primary" id="submitBtn" style="flex: 2; border-radius: 8px; padding: 12px; font-weight: 600;">Simpan Sales Order</button>
+            <a href="{{ route('sales.kunjungan.index') }}" class="button button-soft" style="flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; border-radius: 8px; text-decoration: none;">Batal</a>
+            <button type="submit" class="button button-primary" id="submitBtn" style="flex: 3; border-radius: 8px; padding: 12px; font-weight: 600;">
+                🧾 Simpan & Terbitkan Nota Penjualan
+            </button>
         </div>
     </form>
 </article>
@@ -271,6 +285,23 @@
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+function togglePaymentMethod() {
+    const tipe = document.getElementById('payment_type');
+    const field = document.getElementById('paymentMethodField');
+    const select = document.getElementById('payment_method');
+    if (!tipe || !field || !select) return;
+    if (tipe.value === 'TUNAI') {
+        field.style.display = '';
+        select.required = true;
+    } else {
+        field.style.display = 'none';
+        select.required = false;
+        select.value = '';
+    }
+}
+togglePaymentMethod();
+</script>
 
 <script>
 // Fungsi Re-inisialisasi Select2

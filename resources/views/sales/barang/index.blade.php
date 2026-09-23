@@ -83,13 +83,13 @@
 
 <!-- Form Pencarian & Filter Server-Side -->
 <div class="toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:20px;">
-    <form action="{{ route('sales.stok.index') }}" method="GET" style="display:flex;flex-wrap:wrap;gap:8px;flex:1;max-width:800px;">
+    <form action="{{ route('sales.stok.index') }}" method="GET" class="search-form" style="display:flex;flex-wrap:wrap;gap:8px;flex:1;max-width:800px;">
         <label class="search-box" style="flex:2;min-width:240px;">
             <span>⌕</span>
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama barang, SKU, kategori, supplier..." onchange="this.form.submit()">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama barang, SKU, kategori, supplier...">
         </label>
 
-        <select name="kategori" onchange="this.form.submit()" style="flex:1;min-width:140px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
+        <select name="kategori" style="flex:1;min-width:140px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
             <option value="">— Semua Kategori —</option>
             @foreach($kategoriList as $k)
                 <option value="{{ trim($k->NM_JNS_BRG) }}" {{ request('kategori') == trim($k->NM_JNS_BRG) ? 'selected' : '' }}>
@@ -98,7 +98,7 @@
             @endforeach
         </select>
 
-        <select name="supplier" onchange="this.form.submit()" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
+        <select name="supplier" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
             <option value="">— Semua Supplier —</option>
             @foreach($supplierList as $s)
                 <option value="{{ trim($s->KD_SUPPL) }}" {{ request('supplier') == trim($s->KD_SUPPL) ? 'selected' : '' }}>

@@ -33,11 +33,13 @@ class UserController extends Controller
                 'e_mail'       => $u->pegawai?->E_MAIL ?? null,
                 'kd_wil'       => $u->pegawai?->KD_WIL ?? null,
                 'st_aktif'     => 'AKTIF',
-                'has_password' => !empty($u->KATAKUNCI),
                 '_model'       => $u,
             ]);
 
-        $sales = Pegawai::salesAktif()
+        // Daftar pengguna menampilkan SEMUA STS_SALES='YA' (termasuk nonaktif)
+        // agar sales yang dicabut aksesnya bisa diedit/diaktifkan kembali.
+        // Dropdown login tetap memakai Pegawai::salesAktif() (hanya AKTIF).
+        $sales = Pegawai::where('STS_SALES', 'YA')
             ->when($search, fn ($q) => $q->where(function ($sub) use ($search) {
                 $term = "%{$search}%";
                 $sub->whereRaw("UPPER(CAST(KD_PEG AS VARCHAR(100))) LIKE ?", [$term])
@@ -61,11 +63,12 @@ class UserController extends Controller
                 'e_mail'       => $p->E_MAIL,
                 'kd_wil'       => $p->KD_WIL,
                 'st_aktif'     => $p->ST_AKTIF ?? 'AKTIF',
-                'has_password' => !empty($p->KATAKUNCI),
                 '_model'       => $p,
             ]);
 
-        $users = $admins->merge($sales);
+        // $admins (User) = Eloquent\Collection of array & $sales (Pegawai) = Support\Collection —
+        // samakan ke base collection dulu, karena Eloquent::merge memanggil $item->getKey() (crash utk array).
+        $users = $admins->toBase()->merge($sales->toBase());
 
         $perPage  = 15;
         $page     = (int) $request->input('page', 1);
@@ -103,7 +106,7 @@ class UserController extends Controller
             'NO_USER'   => User::nextNoUser(),
             'NM_USER'   => strtoupper(trim($request->nm_user)),
             'KATAKUNCI' => $request->password,
-            'NO_OTOR'   => 9, // MANAGER / admin
+            'NO_OTOR'   => 9, 
             'KD_PEG'    => null,
         ]);
 
@@ -117,7 +120,6 @@ class UserController extends Controller
         $wilayahList = DB::connection('firebird')->table('WILAYAH')->get();
 
         $pegawaiTanpaAkun = Pegawai::salesAktif()
-            ->where(fn ($q) => $q->whereNull('KATAKUNCI')->orWhere('KATAKUNCI', ''))
             ->orderBy('NM_PEG')
             ->get();
 
@@ -131,7 +133,6 @@ class UserController extends Controller
         if ($mode === 'existing') {
             $request->validate([
                 'kd_peg'   => 'required|string|exists:PEGAWAI,KD_PEG',
-                'password' => 'required|string|min:4|max:32|confirmed',
                 'alm_peg'  => 'nullable|string|max:65',
                 'hp'       => 'nullable|string|max:14',
                 'telp1'    => 'nullable|string|max:14',
@@ -140,12 +141,10 @@ class UserController extends Controller
             ], [
                 'kd_peg.required'    => 'Pilih pegawai terlebih dahulu.',
                 'kd_peg.exists'      => 'Kode pegawai tidak ditemukan.',
-                'password.required'  => 'Password wajib diisi.',
-                'password.confirmed' => 'Konfirmasi password tidak cocok.',
             ]);
 
             $pegawai = Pegawai::where('KD_PEG', $request->kd_peg)->firstOrFail();
-            $updateData = ['KATAKUNCI' => $request->password];
+            $updateData = [];
 
             if ($request->filled('alm_peg')) $updateData['ALM_PEG'] = $request->alm_peg;
             if ($request->filled('hp'))      $updateData['HP']      = $request->hp;
@@ -156,7 +155,7 @@ class UserController extends Controller
             $pegawai->update($updateData);
 
             return redirect()->route('admin.users.index')
-                ->with('success', "Akun sales untuk [{$pegawai->NM_PEG}] berhasil diaktifkan.");
+                ->with('success', "Data sales untuk [{$pegawai->NM_PEG}] berhasil disimpan.");
         }
 
         $request->validate([
@@ -169,13 +168,10 @@ class UserController extends Controller
             'kd_wil'    => 'nullable|string|max:20',
             'bank'      => 'nullable|string|max:50',
             'no_rek'    => 'nullable|string|max:14',
-            'password'  => 'required|string|min:4|max:32|confirmed',
         ], [
             'kd_peg.required'    => 'Kode pegawai wajib diisi.',
             'kd_peg.unique'      => 'Kode pegawai sudah terdaftar.',
             'nm_peg.required'    => 'Nama pegawai wajib diisi.',
-            'password.required'  => 'Password wajib diisi.',
-            'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
 
         Pegawai::create([
@@ -190,7 +186,6 @@ class UserController extends Controller
             'NO_REK'    => $request->no_rek,
             'STS_SALES' => 'YA',
             'ST_AKTIF'  => 'AKTIF',
-            'KATAKUNCI' => $request->password,
         ]);
 
         return redirect()->route('admin.users.index')
@@ -228,10 +223,8 @@ class UserController extends Controller
                 'no_rek'    => 'nullable|string|max:14',
                 'st_aktif'  => 'nullable|in:AKTIF,TIDAK',
                 'sts_sales' => 'nullable|in:YA,TIDAK',
-                'password'  => 'nullable|string|min:4|max:32|confirmed',
             ], [
                 'nm_peg.required'    => 'Nama pegawai wajib diisi.',
-                'password.confirmed' => 'Konfirmasi password tidak cocok.',
             ]);
 
             $pegawai = Pegawai::where('KD_PEG', $id)->firstOrFail();
@@ -248,10 +241,6 @@ class UserController extends Controller
                 'ST_AKTIF'  => $request->st_aktif ?: 'AKTIF',
                 'STS_SALES' => $request->sts_sales ?: 'YA',
             ];
-
-            if ($request->filled('password')) {
-                $updateData['KATAKUNCI'] = $request->password;
-            }
 
             $pegawai->update($updateData);
 
@@ -285,9 +274,9 @@ class UserController extends Controller
 
         if ($source === 'sales') {
             $pegawai = Pegawai::where('KD_PEG', $id)->firstOrFail();
-            $pegawai->update(['KATAKUNCI' => null]);
+            $pegawai->update(['ST_AKTIF' => 'TIDAK']);
             return redirect()->route('admin.users.index')
-                ->with('success', "Akses login sales [{$pegawai->NM_PEG}] berhasil dicabut.");
+                ->with('success', "Akses login sales [{$pegawai->NM_PEG}] dicabut (dinonaktifkan).");
         }
 
         if (Auth::guard('web')->id() == $id) {

@@ -126,7 +126,8 @@ class Pegawai extends FirebirdAuthenticatable
     /** Scope sales aktif (STS_SALES = 'YA') */
     public function scopeSalesAktif($query)
     {
-        return $query->where('STS_SALES', 'YA');
+        // Dipakai dropdown login & daftar sales: harus STS_SALES='YA' DAN masih AKTIF.
+        return $query->where('STS_SALES', 'YA')->where('ST_AKTIF', 'AKTIF');
     }
 
     /** Helper generate next KD_PEG (misal T2467) */

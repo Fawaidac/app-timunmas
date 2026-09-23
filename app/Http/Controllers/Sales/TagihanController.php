@@ -23,7 +23,8 @@ class TagihanController extends Controller
         $tab    = $request->query('tab', 'all'); 
 
         $scopedOrder = function ($q) use ($kdPeg, $kdUser) {
-            $q->where('ST_JADI', 'OS');
+            // Hanya order KREDIT yang masuk tagihan (order LUNAS sudah lunas saat dibuat).
+            $q->where('ST_JADI', 'OS')->where('JNS_BYR', 'KREDIT');
             if ($kdPeg) {
                 $q->where('KD_PEG', $kdPeg);
             } elseif ($kdUser) {

@@ -3,7 +3,7 @@
 @section('content')
 <div class="section-head">
     <h2>Tambah Pegawai Sales</h2>
-    <p>Kelola data pegawai sales di tabel <code>PEGAWAI</code> dan set kata kunci untuk login.</p>
+    <p>Kelola data pegawai sales di tabel <code>PEGAWAI</code> — sales login cukup pilih nama pegawai, <b>tanpa kata kunci</b>.</p>
 </div>
 
 <article class="card" style="max-width:760px;">
@@ -86,20 +86,6 @@
             </div>
         </div>
 
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0;">
-            <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#1e293b;">Kata Kunci Login (KATAKUNCI)</p>
-            <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                <div class="field" style="margin:0;">
-                    <label>Password <span style="color:#ef4444;">*</span></label>
-                    <input type="password" name="password" placeholder="Min. 4 karakter" required minlength="4">
-                </div>
-                <div class="field" style="margin:0;">
-                    <label>Konfirmasi Password <span style="color:#ef4444;">*</span></label>
-                    <input type="password" name="password_confirmation" placeholder="Ulangi password" required>
-                </div>
-            </div>
-        </div>
-
         <div style="display:flex;gap:12px;margin-top:24px;">
             <a href="{{ route('admin.users.index') }}" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
             <button type="submit" class="button button-primary" style="flex:2;">Simpan Pegawai Sales Baru</button>
@@ -113,8 +99,8 @@
 
         @if($pegawaiTanpaAkun->isEmpty())
             <div style="background:#fefce8;border:1px solid #fde047;color:#854d0e;padding:14px 16px;border-radius:10px;margin-bottom:16px;">
-                <b>Semua pegawai yang terdaftar sudah memiliki kata kunci login.</b><br>
-                <small>Gunakan mode "Buat Pegawai Baru" di atas atau tombol Edit di halaman daftar pengguna.</small>
+                <b>Belum ada pegawai sales aktif di database.</b><br>
+                <small>Tambahkan lewat mode "Buat Pegawai Baru" di atas.</small>
             </div>
         @else
             <div class="field">
@@ -133,7 +119,7 @@
                         </option>
                     @endforeach
                 </select>
-                <small style="color:var(--muted);font-size:11px;">Hanya pegawai aktif yang belum memiliki kata kunci login.</small>
+                <small style="color:var(--muted);font-size:11px;">Daftar pegawai sales aktif (tabel PEGAWAI).</small>
             </div>
 
             <div class="field">
@@ -168,23 +154,9 @@
                 </select>
             </div>
 
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0;">
-                <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#1e293b;">Set Kata Kunci Login</p>
-                <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                    <div class="field" style="margin:0;">
-                        <label>Password <span style="color:#ef4444;">*</span></label>
-                        <input type="password" name="password" placeholder="Min. 4 karakter" minlength="4">
-                    </div>
-                    <div class="field" style="margin:0;">
-                        <label>Konfirmasi Password <span style="color:#ef4444;">*</span></label>
-                        <input type="password" name="password_confirmation" placeholder="Ulangi password">
-                    </div>
-                </div>
-            </div>
-
             <div style="display:flex;gap:12px;margin-top:24px;">
                 <a href="{{ route('admin.users.index') }}" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
-                <button type="submit" class="button button-primary" style="flex:2;">Aktifkan Akun Sales</button>
+                <button type="submit" class="button button-primary" style="flex:2;">Simpan Data Sales</button>
             </div>
         @endif
     </form>

@@ -26,17 +26,30 @@
         <input type="hidden" name="visit_id" value="{{ $visit->id }}">
         <input type="hidden" name="customer_id" value="{{ $visit->customer_id }}">
 
-        <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
             <div class="field">
                 <label>Customer</label>
                 <input type="text" class="form-control" value="{{ $visit->customer->name }} ({{ $visit->customer->code }})" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
-                <label>Tanggal Order <span style="color:#ef4444;">*</span></label>
+                <label>Tanggal Transaksi <span style="color:#ef4444;">*</span></label>
                 <input type="date" name="order_date" class="form-control" value="{{ old('order_date', date('Y-m-d')) }}" required>
             </div>
+            <div class="field">
+                <label>Tipe Pembayaran <span style="color:#ef4444;">*</span></label>
+                <select name="payment_type" id="payment_type" class="form-control" required onchange="togglePaymentMethod()">
+                    <option value="TUNAI" {{ old('payment_type') == 'TUNAI' ? 'selected' : '' }}>💵 Lunas — Pilih Cash / Transfer</option>
+                    <option value="KREDIT" {{ old('payment_type', 'KREDIT') == 'KREDIT' ? 'selected' : '' }}>⏳ Kredit / Tempo (Jatuh Tempo 7 Hari)</option>
+                </select>
+            </div>
+            <div class="field" id="paymentMethodField" style="display:none;">
+                <label>Metode Bayar (Lunas) <span style="color:#ef4444;">*</span></label>
+                <select name="payment_method" id="payment_method" class="form-control">
+                    <option value="cash" {{ old('payment_method', 'cash') == 'cash' ? 'selected' : '' }}>💵 Cash (Uang Tunai)</option>
+                    <option value="transfer" {{ old('payment_method') == 'transfer' ? 'selected' : '' }}>🏦 Transfer Bank</option>
+                </select>
+            </div>
         </div>
-        {{-- Payment default: KREDIT 7 hari --}}
 
         <!-- Box Ringkasan Tanggungan / Piutang & Limit Customer (dari VW_PIUTANG) -->
         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px; margin-bottom:20px;">
@@ -128,13 +141,29 @@
 
         <div class="button-row" style="margin-top:24px;display:flex;gap:12px;">
             <a href="{{ route('sales.kunjungan.show', $visit->id) }}" class="button button-soft" style="flex:1;text-align:center;">Batal</a>
-            <button type="submit" class="button button-primary" id="submitBtn" style="flex:2;">Simpan Sales Order</button>
+            <button type="submit" class="button button-primary" id="submitBtn" style="flex:2;">🧾 Simpan & Terbitkan Nota Penjualan</button>
         </div>
     </form>
 </article>
 
 @push('scripts')
 <script>
+
+function togglePaymentMethod() {
+    const tipe = document.getElementById('payment_type');
+    const field = document.getElementById('paymentMethodField');
+    const select = document.getElementById('payment_method');
+    if (!tipe || !field || !select) return;
+    if (tipe.value === 'TUNAI') {
+        field.style.display = '';
+        select.required = true;
+    } else {
+        field.style.display = 'none';
+        select.required = false;
+        select.value = '';
+    }
+}
+togglePaymentMethod();
 
 function fillPrice(select) {
     const row = select.closest('tr');

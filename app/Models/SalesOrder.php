@@ -59,6 +59,18 @@ class SalesOrder extends FirebirdModel
         return $this->JNS_BYR === 'TUNAI' ? 'cash' : 'credit';
     }
 
+    /** Label tampilan: "💵 Lunas — Cash/Transfer" atau "⏳ Kredit — Tempo 7 Hari". */
+    public function getPaymentMethodLabelAttribute(): string
+    {
+        if ($this->JNS_BYR !== 'TUNAI') {
+            return '⏳ Kredit — Tempo ' . ((int) ($this->TOP ?: 7)) . ' Hari';
+        }
+
+        $metode = $this->payments()->where('STATUS', 'approved')->value('METODE');
+
+        return '💵 Lunas — ' . (strtoupper((string) $metode) === 'TRANSFER' ? 'Transfer' : 'Cash');
+    }
+
     public function getPaymentTermDaysAttribute()
     {
         return (int) ($this->TOP ?? 0);
@@ -79,22 +91,73 @@ class SalesOrder extends FirebirdModel
         return $this->NO_ENT;
     }
 
-    /* Badge status (nilai legacy: OS = order, INV = jadi faktur, BATAL) */
+    /* Status Helpers */
+    public function isDraft(): bool
+    {
+        return in_array($this->ST_JADI, ['QUO', 'DRAFT']);
+    }
+
+    public function isPending(): bool
+    {
+        return $this->ST_JADI === 'OS';
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->ST_JADI === 'INV';
+    }
+
+    public function isRejected(): bool
+    {
+        return in_array($this->ST_JADI, ['REJECTED', 'BATAL']);
+    }
+
+    /* Badge status (nilai legacy: QUO = penawaran/draft, OS = order (langsung final, TANPA approval),
+       INV = sales/faktur, REJECTED/BATAL). Approval HANYA untuk penitipan pembayaran, bukan order. */
+    private function osBadge(): array
+    {
+        if ($this->JNS_BYR === 'TUNAI') {
+            return ['class' => 'badge-success', 'label' => 'Order — Lunas'];
+        }
+
+        $paid = (float) ($this->relationLoaded('payments')
+            ? $this->payments->where('STATUS', 'approved')->sum('JUMLAH')
+            : $this->payments()->where('STATUS', 'approved')->sum('JUMLAH'));
+
+        $sisa = max(0, (float) ($this->TOTAL ?? 0) - $paid);
+
+        return $sisa <= 0.005
+            ? ['class' => 'badge-success', 'label' => 'Order — Lunas']
+            : ['class' => 'badge-warning', 'label' => 'Order — Kredit'];
+    }
+
     public function getBadgeClassAttribute()
     {
+        if ($this->ST_JADI === 'OS') {
+            return $this->osBadge()['class'];
+        }
+
         return [
-            'OS'    => 'badge-warning',
-            'INV'   => 'badge-success',
-            'BATAL' => 'badge-danger',
-        ][$this->ST_JADI] ?? 'badge-secondary';
+            'QUO'      => 'badge-secondary',
+            'DRAFT'    => 'badge-secondary',
+            'INV'      => 'badge-success',
+            'REJECTED' => 'badge-danger',
+            'BATAL'    => 'badge-danger',
+        ][$this->ST_JADI] ?? 'badge-info';
     }
 
     public function getBadgeLabelAttribute()
     {
+        if ($this->ST_JADI === 'OS') {
+            return $this->osBadge()['label'];
+        }
+
         return [
-            'OS'    => 'Order (belum faktur)',
-            'INV'   => 'Sudah jadi faktur',
-            'BATAL' => 'Dibatalkan',
+            'QUO'      => 'Penawaran (Draft)',
+            'DRAFT'    => 'Penawaran (Draft)',
+            'INV'      => 'Penjualan (Faktur)',
+            'REJECTED' => 'Ditolak Admin',
+            'BATAL'    => 'Dibatalkan',
         ][$this->ST_JADI] ?? ucfirst((string) $this->ST_JADI);
     }
 

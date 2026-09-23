@@ -115,6 +115,41 @@ class PembayaranController extends Controller
                     'PEMBAYARAN' => $jumlah,
                     'NM_PEG'     => $nmPeg,
                 ]);
+            } else {
+                $order = DB::table('MST_ORD_JUAL')->where('NO_ENT', $payment->NO_ENT)->first();
+
+                if ($order && strtoupper((string) $order->JNS_BYR) === 'KREDIT') {
+                    $jumlah = (float) $payment->JUMLAH;
+                    $cust = DB::table('CUSTOMER')->where('KD_CUST', $payment->KD_CUST)->first();
+                    $piutangBaru = max(0, (float) ($cust->JML_PIUTANG ?? 0) - $jumlah);
+
+                    if ($cust) {
+                        DB::table('CUSTOMER')->where('KD_CUST', $payment->KD_CUST)->update([
+                            'JML_PIUTANG' => $piutangBaru,
+                        ]);
+                    }
+
+                    $noKartu = (int) (DB::select('SELECT GEN_ID(DET_KRT_PIUTANG_NOMOR_GEN, 1) AS ID FROM RDB$DATABASE')[0]->ID ?? 0);
+                    $nmPeg = Pegawai::find($payment->KD_PEG)->NM_PEG ?? null;
+
+                    DB::table('DET_KRT_PIUTANG')->insert([
+                        'NOMOR'      => $noKartu,
+                        'TANGGAL'    => now()->format('Y-m-d H:i:s'),
+                        'NO_BUKTI'   => $payment->NO_BUKTI,
+                        'KD_CUST'    => $payment->KD_CUST,
+                        'KET'        => 'PEMBAYARAN ORDER',
+                        'DEBET'      => 0,
+                        'KREDIT'     => $jumlah,
+                        'SALDO'      => $piutangBaru,
+                        'BYR_TUNAI'  => $payment->METODE === 'cash' ? $jumlah : 0,
+                        'BYR_CEK'    => $payment->METODE === 'giro' ? $jumlah : 0,
+                        'TGL_JT'     => null,
+                        'STS_SIMPAN' => 0,
+                        'PENJUALAN'  => 0,
+                        'PEMBAYARAN' => $jumlah,
+                        'NM_PEG'     => $nmPeg,
+                    ]);
+                }
             }
 
             $payment->update([

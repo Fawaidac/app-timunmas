@@ -30,6 +30,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @include('partials/sweetalert-confirm')
 
+    {{-- Pencarian tabel seragam: form otomatis dikirim saat mengetik (tanpa perlu Enter) --}}
+    @include('partials.live-search')
+
 @stack('scripts')
 </body>
 </html>

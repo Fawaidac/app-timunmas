@@ -72,10 +72,10 @@
 
 
 <div class="toolbar" style="margin-bottom: 20px;">
-    <form action="{{ route('admin.invoices') }}" method="GET" style="flex: 1; max-width: 400px;">
+    <form action="{{ route('admin.invoices') }}" method="GET" class="search-form" style="flex: 1; max-width: 400px;">
         <label class="search-box" style="width: 100%;">
             <span>⌕</span>
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nomor invoice atau kode pelanggan..." onchange="this.form.submit()">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nomor invoice atau kode pelanggan...">
         </label>
         @if(request('status'))
             <input type="hidden" name="status" value="{{ request('status') }}">

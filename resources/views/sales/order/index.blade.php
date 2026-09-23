@@ -17,10 +17,12 @@
 @endif
 
 <div class="toolbar">
-    <label class="search-box">
-        <span>⌕</span>
-        <input type="search" placeholder="Cari nomor order atau pelanggan...">
-    </label>
+    <form action="{{ route('sales.order.index') }}" method="GET" class="search-form" style="margin:0;">
+        <label class="search-box">
+            <span>⌕</span>
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nomor order atau pelanggan...">
+        </label>
+    </form>
     <div style="display:flex;gap:12px;">
         <a href="{{ route('sales.kunjungan.index') }}" class="button button-soft">← Kembali ke Kunjungan</a>
         <a href="{{ route('sales.order.create', ['customer_id' => request('customer_id'), 'visit_id' => request('visit_id')]) }}" class="button button-primary">
@@ -52,14 +54,10 @@
                         <td>{{ ucfirst($order->payment_type) }}</td>
                         <td>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
                         <td>
-                            @if($order->status === 'OS')
-                                <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Order Baru (OS)</span>
-                            @elseif($order->status === 'INV')
-                                <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Sudah Faktur (INV)</span>
-                            @elseif($order->status === 'BATAL')
-                                <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Dibatalkan</span>
+                            @if($order->JNS_BYR === 'TUNAI')
+                                <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">💵 Tunai (LUNAS)</span>
                             @else
-                                <span style="background:#f1f5f9;color:#475569;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">{{ $order->badge_label }}</span>
+                                <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">⏳ Kredit (Tempo 7 Hari)</span>
                             @endif
                         </td>
                         <td>

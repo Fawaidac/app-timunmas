@@ -22,10 +22,10 @@
 @endif
 
 <div class="toolbar">
-    <form action="{{ route('admin.users.index') }}" method="GET" style="flex: 1; max-width: 420px;">
+    <form action="{{ route('admin.users.index') }}" method="GET" class="search-form" style="flex: 1; max-width: 420px;">
         <label class="search-box" style="width: 100%;">
             <span>⌕</span>
-            <input type="search" name="search" value="{{ $search ?? '' }}" placeholder="Cari username, kode, nama, kontak, alamat..." onchange="this.form.submit()">
+            <input type="search" name="search" value="{{ $search ?? '' }}" placeholder="Cari username, kode, nama, kontak, alamat...">
         </label>
     </form>
     <div style="display:flex;gap:8px;">
@@ -44,7 +44,6 @@
                     <th>Role</th>
                     <th>Kontak (HP/Email)</th>
                     <th>Alamat & Wilayah</th>
-                    <th>Status Login</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
@@ -61,6 +60,9 @@
                                         {{ $u['nama'] }}
                                         @if($u['source'] === 'admin' && $u['id'] == auth()->guard('web')->id())
                                             <span style="background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:20px;font-size:10px;margin-left:4px;font-weight:600;">Saya</span>
+                                        @endif
+                                        @if($u['source'] === 'sales' && ($u['st_aktif'] ?? 'AKTIF') !== 'AKTIF')
+                                            <span style="background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:20px;font-size:10px;margin-left:4px;font-weight:600;">Nonaktif</span>
                                         @endif
                                     </div>
                                     <div style="font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center;">
@@ -117,17 +119,6 @@
                             @endif
                         </td>
                         <td>
-                            @if($u['has_password'])
-                                <span style="display:inline-flex;align-items:center;gap:4px;color:#16a34a;font-size:12px;font-weight:600;">
-                                    <span>✔</span> Aktif
-                                </span>
-                            @else
-                                <span style="display:inline-flex;align-items:center;gap:4px;color:#dc2626;font-size:12px;font-weight:500;">
-                                    <span>✖</span> Belum ada password
-                                </span>
-                            @endif
-                        </td>
-                        <td>
                             <div style="display:flex;gap:6px;align-items:center;">
                                 <a href="{{ route('admin.users.edit', $u['id']) }}?source={{ $u['source'] }}"
                                    class="button button-soft" style="padding:6px 10px;font-size:11px;">Edit</a>
@@ -148,7 +139,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">
+                        <td colspan="6" style="text-align:center;padding:40px;color:var(--muted);">
                             Tidak ada data pengguna.
                         </td>
                     </tr>

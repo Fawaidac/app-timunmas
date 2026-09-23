@@ -48,11 +48,11 @@
         </a>
     </div>
 
-    <form action="{{ route('sales.tagihan.index') }}" method="GET" style="flex: 1; min-width: 260px; max-width: 380px;">
+    <form action="{{ route('sales.tagihan.index') }}" method="GET" class="search-form" style="flex: 1; min-width: 260px; max-width: 380px;">
         <input type="hidden" name="tab" value="{{ $tab }}">
         <label class="search-box" style="width: 100%;">
             <span>⌕</span>
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nomor order, faktur, atau customer..." onchange="this.form.submit()">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nomor order, faktur, atau customer...">
         </label>
     </form>
 </div>

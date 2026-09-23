@@ -11,7 +11,7 @@ class CustomerSeeder extends Seeder
     {
         $customers = [
             [
-                'code' => 'CUST001',
+                'code' => 'CUST006',
                 'name' => 'Toko Sumber Rejeki',
                 'address' => 'Jl. Merdeka No. 123, Jakarta Pusat',
                 'phone' => '021-5551234',

@@ -39,7 +39,7 @@ class CustomerController extends Controller
             });
         }
 
-        $customers = $query->paginate(15)->withQueryString();
+        $customers = $query->with(['invoices', 'orders'])->paginate(15)->withQueryString();
 
         return view('sales.customer.index', compact('customers', 'sales'));
     }
@@ -47,7 +47,7 @@ class CustomerController extends Controller
     public function create()
     {
         $sales       = $this->salesPegawai();
-        $nextKdCust  = Customer::nextKdCust('WEB');
+        $nextKdCust  = Customer::nextKdCust('CUST');
         $wilayahList = DB::connection('firebird')->table('WILAYAH')->get();
         $kategoriList= DB::connection('firebird')->table('KAT_CUSTOMER')->get();
 
@@ -79,7 +79,7 @@ class CustomerController extends Controller
 
         $kdCust = !empty($validated['kd_cust'])
             ? strtoupper(trim($validated['kd_cust']))
-            : Customer::nextKdCust('WEB');
+            : Customer::nextKdCust('CUST');
 
         $nmWil = null;
         if (!empty($validated['kd_wil'])) {

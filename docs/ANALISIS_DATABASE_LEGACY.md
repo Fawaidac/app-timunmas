@@ -589,6 +589,16 @@ Dari 340 tabel, mayoritas tidak dibutuhkan modul web saat ini:
 6. **Hanya 4 FK** → tidak bisa mengandalkan constraint DB; validasi relasi harus di aplikasi.
 7. **Kolom `GUDANG` di `VW_STOK_BARANG_BRG` bertipe `CHAR(0)`** → jangan dipakai sebagai key.
 8. **BLOB** dipakai untuk `KETERANGAN`, `GAMBAR`, `RDB$VIEW_SOURCE` → perlu handling khusus saat select.
+9. **Trigger `MST_ORD_JUAL_BI` (BEFORE INSERT) menimpa nilai insert:**
+   - `NEW.ST_JADI` dipaksa `'OS'` (legacy: `OS` = order terbuka, `INV` diset saat jadi faktur).
+   - `NEW.JNS_BYR` dipaksa `'KREDIT'` (kode lama konversi `'1'/'0'` → `TUNAI/KREDIT` sudah dikomentari),
+     sehingga **pilihan pembayaran Tunai dari web selalu tertimpa**.
+   - Solusi di `OrderController::store`: koreksi `JNS_BYR`/`TOP` lewat **UPDATE setelah insert**
+     (UPDATE tidak memicu trigger BEFORE INSERT).
+10. **Trigger `DET_ORD_JUAL_AI` mengakumulasi header:** `TOTAL = TOTAL + SUB_TOTAL` per item →
+    jika header sudah diisi `TOTAL = Σ item`, hasilnya **dobel**. Selaraskan: header diisi nilai akhir
+    via UPDATE pasca-item (lihat `OrderController::store`). Data lama yang kena (OJ2609/001/00004–00006)
+    sudah direpair (`storage/app/db_repair_orders.php`).
 
 ---
 

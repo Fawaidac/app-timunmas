@@ -3,7 +3,7 @@
 @section('content')
 <div class="section-head">
     <h2>Edit Pegawai Sales</h2>
-    <p>Perbarui data profil dan kata kunci login untuk <b>{{ $pegawai->NM_PEG }}</b> (<code>PEGAWAI</code>)</p>
+    <p>Perbarui data profil untuk <b>{{ $pegawai->NM_PEG }}</b> (<code>PEGAWAI</code>) — tanpa kata kunci, sales login tanpa password</p>
 </div>
 
 <article class="card" style="max-width:760px;">
@@ -88,21 +88,6 @@
                     <option value="YA" {{ old('sts_sales', $pegawai->STS_SALES) === 'YA' ? 'selected' : '' }}>YA (Sales Lapangan)</option>
                     <option value="TIDAK" {{ old('sts_sales', $pegawai->STS_SALES) === 'TIDAK' ? 'selected' : '' }}>TIDAK (Bukan Sales)</option>
                 </select>
-            </div>
-        </div>
-
-        {{-- Ganti Password --}}
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0;">
-            <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#1e293b;">Ganti Kata Kunci Login (kosongkan jika tidak ingin mengubah)</p>
-            <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                <div class="field" style="margin:0;">
-                    <label>Password Baru</label>
-                    <input type="password" name="password" placeholder="Min. 4 karakter" minlength="4">
-                </div>
-                <div class="field" style="margin:0;">
-                    <label>Konfirmasi Password</label>
-                    <input type="password" name="password_confirmation" placeholder="Ulangi password baru">
-                </div>
             </div>
         </div>
 

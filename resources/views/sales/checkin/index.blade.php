@@ -205,28 +205,35 @@ function getGPS() {
 
                     if (distance > 100) {
                         distanceInfo.style.color = '#991b1b';
-                        distanceInfo.textContent += ' (Terlalu jauh! Maksimal 100 meter)';
+                        distanceInfo.textContent += ' \u2014 \u26d4 Terlalu jauh! Maksimal 100 meter';
                         submitBtn.disabled = true;
-                        submitBtn.textContent = '✖ Di Luar Jangkauan';
+                        submitBtn.style.opacity = '0.5';
+                        submitBtn.style.cursor = 'not-allowed';
+                        submitBtn.textContent = '\u2716 Di Luar Jangkauan (> 100m)';
                     } else {
                         distanceInfo.style.color = '#065f46';
+                        distanceInfo.textContent += ' \u2014 \u2714 Dalam Jangkauan';
                         submitBtn.disabled = false;
-                        submitBtn.textContent = '✓ Check-in Sekarang';
+                        submitBtn.style.opacity = '';
+                        submitBtn.style.cursor = '';
+                        submitBtn.textContent = '\u2713 Check-in Sekarang';
                     }
                 @else
-                    distanceInfo.textContent = 'Koordinat customer tidak tersedia';
+                    distanceInfo.textContent = 'Koordinat customer tidak tersedia \u2014 check-in diizinkan tanpa GPS';
                     distanceInfo.style.display = 'block';
+                    distanceInfo.style.color = '#92400e';
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '';
+                    submitBtn.style.cursor = '';
                 @endif
-                
-                gpsStatus.textContent = '✓ GPS Aktif';
+
+                gpsStatus.textContent = '\u2713 GPS Aktif';
                 gpsStatus.className = 'badge badge-success';
-                
+
                 coordinatesDisplay.querySelector('p').textContent = 'Koordinat: ' + lat.toFixed(6) + ', ' + lon.toFixed(6);
                 coordinatesDisplay.style.display = 'block';
                 coordinatesDisplay.style.background = '#d1fae5';
                 coordinatesDisplay.style.borderColor = '#6ee7b7';
-                
-                submitBtn.disabled = false;
 
                 // Initialize map
                 initMap(lat, lon);

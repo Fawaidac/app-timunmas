@@ -79,8 +79,8 @@
         <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;">
             <div class="field">
                 <label>Kode Customer (auto)</label>
-                <input type="text" name="kd_cust" value="{{ old('kd_cust', $nextKdCust) }}" maxlength="9" style="text-transform:uppercase;font-weight:700;">
-                <small style="color:var(--muted);font-size:11px;">Bisa dikosongkan, sistem auto-generate.</small>
+                <input type="text" name="kd_cust" value="{{ old('kd_cust', $nextKdCust) }}" maxlength="9" style="text-transform:uppercase;font-weight:700;" placeholder="CUST0001">
+                <small style="color:var(--muted);font-size:11px;">Auto-generate (format: CUST0001). Bisa diubah manual, max 9 karakter.</small>
             </div>
             <div class="field">
                 <label>Nama Customer / Toko <span style="color:var(--danger);">*</span></label>

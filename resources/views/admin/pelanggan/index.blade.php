@@ -23,13 +23,13 @@
 
 <!-- Toolbar Pencarian & Filter Server-Side -->
 <div class="toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
-    <form action="{{ route('admin.customers.index') }}" method="GET" style="display:flex;flex-wrap:wrap;gap:8px;flex:1;max-width:850px;">
+    <form action="{{ route('admin.customers.index') }}" method="GET" class="search-form" style="display:flex;flex-wrap:wrap;gap:8px;flex:1;max-width:850px;">
         <label class="search-box" style="flex:2;min-width:240px;">
             <span>⌕</span>
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari kode, nama, kontak, alamat, sales..." onchange="this.form.submit()">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari kode, nama, kontak, alamat, sales...">
         </label>
 
-        <select name="wilayah" onchange="this.form.submit()" style="flex:1;min-width:140px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
+        <select name="wilayah" style="flex:1;min-width:140px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
             <option value="">— Semua Wilayah —</option>
             @foreach($wilayahList as $w)
                 <option value="{{ trim($w->KD_WIL) }}" {{ request('wilayah') == trim($w->KD_WIL) ? 'selected' : '' }}>
@@ -38,7 +38,7 @@
             @endforeach
         </select>
 
-        <select name="sales" onchange="this.form.submit()" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
+        <select name="sales" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
             <option value="">— Semua Sales —</option>
             @foreach($salesList as $s)
                 <option value="{{ $s->KD_PEG }}" {{ request('sales') == $s->KD_PEG ? 'selected' : '' }}>
@@ -47,7 +47,7 @@
             @endforeach
         </select>
 
-        <select name="kategori" onchange="this.form.submit()" style="flex:1;min-width:130px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
+        <select name="kategori" style="flex:1;min-width:130px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
             <option value="">— Kategori —</option>
             @foreach($kategoriList as $k)
                 <option value="{{ trim($k->KD_KAT) }}" {{ request('kategori') == trim($k->KD_KAT) ? 'selected' : '' }}>

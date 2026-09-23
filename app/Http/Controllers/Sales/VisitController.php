@@ -134,11 +134,30 @@ class VisitController extends Controller
             ->where('STATUS', 'scheduled')
             ->firstOrFail();
 
+        $userLat = (float) $request->checkin_latitude;
+        $userLon = (float) $request->checkin_longitude;
+
+        // Validasi server-side jarak GPS (anti-manipulasi JS)
+        $customer = $visit->customer;
+        if ($customer && $customer->latitude && $customer->longitude) {
+            $jarakMeter = $this->haversineDistance(
+                $userLat, $userLon,
+                (float) $customer->latitude,
+                (float) $customer->longitude
+            );
+
+            if ($jarakMeter > 150) {
+                return redirect()->back()
+                    ->withErrors(['checkin_latitude' => "Check-in gagal: Anda berada {$jarakMeter} meter dari lokasi customer. Maksimal 100 meter."])
+                    ->withInput();
+            }
+        }
+
         $visit->update([
             'JAM_CHECKIN' => now()->format('Y-m-d H:i:s'),
-            'LAT_CHECKIN' => round((float) $request->checkin_latitude, 8),
-            'LON_CHECKIN' => round((float) $request->checkin_longitude, 8),
-            'JARAK_M'     => null,
+            'LAT_CHECKIN' => round($userLat, 8),
+            'LON_CHECKIN' => round($userLon, 8),
+            'JARAK_M'     => isset($jarakMeter) ? round($jarakMeter) : null,
             'STATUS'      => 'in_progress',
         ]);
 
@@ -161,5 +180,18 @@ class VisitController extends Controller
         $products = \App\Models\Product::orderBy('NM_BRG')->get();
 
         return view('sales.order.create', compact('visit', 'products'));
+    }
+
+    /**
+     * Hitung jarak dua titik GPS menggunakan formula Haversine (dalam meter).
+     */
+    private function haversineDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earthRadius = 6371000; // meter
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat / 2) ** 2
+           + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
+        return $earthRadius * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 }

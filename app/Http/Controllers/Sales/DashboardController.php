@@ -68,23 +68,11 @@ class DashboardController extends Controller
             ->where('STATUS', 'approved')
             ->sum('JUMLAH');
 
-        $orderTerbaru = SalesOrder::with('customer')
+        $orderTerbaru = SalesOrder::with(['customer', 'payments'])
             ->where($scopedPeg)
             ->orderBy('TANGGAL', 'desc')
             ->limit(5)
-            ->get()
-            ->map(function ($order) {
-                $badgeMap = [
-                    'OS'    => ['class' => 'badge-warning', 'label' => 'Menunggu faktur'],
-                    'INV'   => ['class' => 'badge-success', 'label' => 'Sudah faktur'],
-                    'BATAL' => ['class' => 'badge-danger', 'label' => 'Dibatalkan'],
-                ];
-
-                $order->badge_class = $badgeMap[$order->ST_JADI]['class'] ?? 'badge-secondary';
-                $order->badge_label = $badgeMap[$order->ST_JADI]['label'] ?? ucfirst((string) $order->ST_JADI);
-
-                return $order;
-            });
+            ->get(); // badge_class/badge_label dihitung model (Lunas / Kredit / Draft / dst)
 
         $ruteKunjungan = SalesVisit::with('customer')
             ->where($scopedPeg)

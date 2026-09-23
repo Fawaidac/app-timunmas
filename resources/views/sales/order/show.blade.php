@@ -53,7 +53,7 @@
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Jenis Pembayaran</label>
-                <input type="text" class="form-control" value="{{ $order->payment_type === 'cash' ? 'Cash' : 'Kredit' }}" readonly style="background:#f9fafb;">
+                <input type="text" class="form-control" value="{{ $order->payment_method_label }}" readonly style="background:#f9fafb;">
             </div>
             <div class="field">
                 <label style="font-size:12px;color:var(--muted);font-weight:500;">Tempo Pembayaran</label>
@@ -104,16 +104,12 @@
     <article class="card">
         <div style="text-align:center;padding:20px 0;border-bottom:1px solid #f1f5f9;margin-bottom:20px;">
             <div style="width:64px;height:64px;background:linear-gradient(135deg,#fff7ed,#fed7aa);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;">
-                🛒
+                🧾
             </div>
-            @if($order->status === 'OS')
-                <span style="background:#fef3c7;color:#92400e;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Menunggu Faktur (OS)</span>
-            @elseif($order->status === 'INV')
-                <span style="background:#d1fae5;color:#065f46;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Sudah Jadi Faktur (INV)</span>
-            @elseif($order->status === 'BATAL')
-                <span style="background:#fee2e2;color:#991b1b;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">Dibatalkan</span>
+            @if($order->JNS_BYR === 'TUNAI')
+                <span style="background:#d1fae5;color:#065f46;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">💵 Nota Penjualan Tunai (LUNAS)</span>
             @else
-                <span style="background:#f1f5f9;color:#475569;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">{{ $order->badge_label }}</span>
+                <span style="background:#fef3c7;color:#92400e;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;">⏳ Nota Penjualan Kredit (Tempo 7 Hari)</span>
             @endif
         </div>
 

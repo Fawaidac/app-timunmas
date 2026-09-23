@@ -18,11 +18,28 @@
     </div>
 @endif
 
-<div class="toolbar">
-    <label class="search-box">
-        <span>⌕</span>
-        <input type="search" placeholder="Cari nomor order atau pelanggan...">
-    </label>
+<div class="toolbar" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="{{ route('admin.orders') }}" class="button {{ !request('payment_type') ? 'button-primary' : 'button-soft' }}" style="padding:6px 14px;font-size:12px;">
+            Semua Nota Penjualan
+        </a>
+        <a href="{{ route('admin.orders', ['payment_type' => 'TUNAI']) }}" class="button {{ request('payment_type') === 'TUNAI' ? 'button-primary' : 'button-soft' }}" style="padding:6px 14px;font-size:12px;">
+            💵 Nota Tunai / LUNAS ({{ $tunaiCount ?? 0 }})
+        </a>
+        <a href="{{ route('admin.orders', ['payment_type' => 'KREDIT']) }}" class="button {{ request('payment_type') === 'KREDIT' ? 'button-primary' : 'button-soft' }}" style="padding:6px 14px;font-size:12px;">
+            ⏳ Nota Kredit / Tempo ({{ $kreditCount ?? 0 }})
+        </a>
+    </div>
+
+    <form action="{{ route('admin.orders') }}" method="GET" class="search-form" style="margin:0;">
+        @if(request('payment_type'))
+            <input type="hidden" name="payment_type" value="{{ request('payment_type') }}">
+        @endif
+        <label class="search-box">
+            <span>⌕</span>
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nomor nota atau pelanggan...">
+        </label>
+    </form>
 </div>
 
 <article class="card">
@@ -48,18 +65,14 @@
                         <td>{{ ucfirst($order->payment_type) }}</td>
                         <td>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
                         <td>
-                            @if($order->status === 'OS')
-                                <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Order Baru (OS)</span>
-                            @elseif($order->status === 'INV')
-                                <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Sudah Faktur (INV)</span>
-                            @elseif($order->status === 'BATAL')
-                                <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Dibatalkan</span>
+                            @if($order->JNS_BYR === 'TUNAI')
+                                <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">💵 Nota Tunai (LUNAS)</span>
                             @else
-                                <span style="background:#f1f5f9;color:#475569;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">{{ $order->badge_label }}</span>
+                                <span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">⏳ Nota Kredit (Tempo 7 Hari)</span>
                             @endif
                         </td>
                         <td>
-                            <a href="{{ route('admin.order.show', $order->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">Detail</a>
+                            <a href="{{ route('admin.order.show', $order->id) }}" class="button button-soft" style="padding:6px 12px;font-size:11px;">Detail Nota</a>
                         </td>
                     </tr>
                 @empty

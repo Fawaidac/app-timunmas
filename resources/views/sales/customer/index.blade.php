@@ -23,10 +23,10 @@
 
 <!-- Toolbar Pencarian & Aksi -->
 <div class="toolbar">
-    <form action="{{ route('sales.customer.index') }}" method="GET" style="flex: 1; max-width: 480px;">
+    <form action="{{ route('sales.customer.index') }}" method="GET" class="search-form" style="flex: 1; max-width: 480px;">
         <label class="search-box">
             <span>⌕</span>
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama, kode, alamat, telepon..." onchange="this.form.submit()">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama, kode, alamat, telepon...">
         </label>
     </form>
     <a href="{{ route('sales.customer.create') }}" class="button button-primary">＋ Tambah Customer</a>
@@ -41,6 +41,7 @@
                     <th>Kontak & PIC</th>
                     <th>Alamat & Wilayah</th>
                     <th>Kategori</th>
+                    <th style="text-align:right;">Jumlah Piutang</th>
                     <th>GPS</th>
                     <th>Aksi</th>
                 </tr>
@@ -101,6 +102,16 @@
                                 <span style="color:var(--muted);font-size:12px;">—</span>
                             @endif
                         </td>
+                        <td style="text-align:right;white-space:nowrap;">
+                            @if($customer->current_debt > 0.005)
+                                <span style="color:#b91c1c;font-weight:700;font-size:13px;">Rp {{ number_format($customer->current_debt, 0, ',', '.') }}</span>
+                                @if($customer->credit_limit > 0)
+                                    <div style="font-size:10px;color:var(--muted);font-weight:400;margin-top:2px;">Limit: Rp {{ number_format($customer->credit_limit, 0, ',', '.') }}</div>
+                                @endif
+                            @else
+                                <span style="color:var(--muted);font-size:12px;font-weight:600;">Rp 0</span>
+                            @endif
+                        </td>
                         <td>
                             @if($customer->LATITUDE && $customer->LONGITUDE)
                                 <span title="GPS: {{ $customer->LATITUDE }}, {{ $customer->LONGITUDE }}" style="color:#0284c7;font-size:12px;cursor:help;display:inline-flex;align-items:center;gap:4px;">
@@ -119,7 +130,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" style="text-align:center;padding:48px 20px;color:var(--muted);">
+                        <td colspan="7" style="text-align:center;padding:48px 20px;color:var(--muted);">
                             <div style="font-size:36px;margin-bottom:8px;">🏪</div>
                             <div style="font-weight:600;font-size:15px;color:var(--ink);">Belum ada customer</div>
                             <p style="font-size:13px;margin:4px 0 12px;">Tambahkan customer pertama Anda untuk mulai mengelola transaksi.</p>

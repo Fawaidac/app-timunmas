@@ -84,11 +84,11 @@
         </a>
     </div>
 
-    <form action="{{ route('admin.payments') }}" method="GET" style="flex: 1; max-width: 360px;">
+    <form action="{{ route('admin.payments') }}" method="GET" class="search-form" style="flex: 1; max-width: 360px;">
         <input type="hidden" name="status" value="{{ $status }}">
         <label class="search-box" style="width: 100%;">
             <span>⌕</span>
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari no. bukti, invoice, customer..." onchange="this.form.submit()">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari no. bukti, invoice, customer...">
         </label>
     </form>
 </div>

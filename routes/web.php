@@ -60,6 +60,7 @@ Route::middleware(['auth:sales,web', 'role:sales'])->prefix('sales')->name('sale
     Route::get('/order', [OrderController::class, 'index'])->name('order.index');
     Route::get('/order/create', [OrderController::class, 'create'])->name('order.create');
     Route::post('/order', [OrderController::class, 'store'])->name('order.store');
+    Route::post('/order/{id}/submit', [OrderController::class, 'submitOrder'])->name('order.submit')->where('id', '.*');
     Route::get('/order/{id}', [OrderController::class, 'show'])->name('order.show')->where('id', '.*');
     
     // Tagihan
@@ -81,9 +82,9 @@ Route::middleware(['auth:sales,web', 'role:sales'])->prefix('sales')->name('sale
         Route::get('/',                     [SalesCustomerController::class, 'index'])->name('index');
         Route::get('/create',               [SalesCustomerController::class, 'create'])->name('create');
         Route::post('/',                    [SalesCustomerController::class, 'store'])->name('store');
-        Route::get('/{kdCust}',             [SalesCustomerController::class, 'show'])->name('show')->where('kdCust', '.*');
-        Route::get('/{kdCust}/edit',        [SalesCustomerController::class, 'edit'])->name('edit')->where('kdCust', '.*');
-        Route::put('/{kdCust}',             [SalesCustomerController::class, 'update'])->name('update')->where('kdCust', '.*');
+        Route::get('/{kdCust}/edit',        [SalesCustomerController::class, 'edit'])->name('edit')->where('kdCust', '[A-Za-z0-9_-]+');
+        Route::put('/{kdCust}',             [SalesCustomerController::class, 'update'])->name('update')->where('kdCust', '[A-Za-z0-9_-]+');
+        Route::get('/{kdCust}',             [SalesCustomerController::class, 'show'])->name('show')->where('kdCust', '[A-Za-z0-9_-]+');
     });
 });
 

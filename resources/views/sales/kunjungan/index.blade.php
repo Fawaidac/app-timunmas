@@ -17,10 +17,10 @@
 @endif
 
 <div class="toolbar">
-    <form action="{{ route('sales.kunjungan.index') }}" method="GET" style="flex: 1; max-width: 400px;">
+    <form action="{{ route('sales.kunjungan.index') }}" method="GET" class="search-form" style="flex: 1; max-width: 400px;">
         <label class="search-box" style="width: 100%;">
             <span>⌕</span>
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama customer..." onchange="this.form.submit()">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama customer...">
         </label>
     </form>
     <a href="{{ route('sales.kunjungan.create') }}" class="button button-primary">＋ Jadwalkan Kunjungan</a>

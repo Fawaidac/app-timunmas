@@ -22,10 +22,10 @@
 @endif
 
 <div class="toolbar">
-    <form action="{{ route('admin.visits') }}" method="GET" style="flex: 1; max-width: 400px;">
+    <form action="{{ route('admin.visits') }}" method="GET" class="search-form" style="flex: 1; max-width: 400px;">
         <label class="search-box" style="width: 100%;">
             <span>⌕</span>
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama sales atau customer..." onchange="this.form.submit()">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama sales atau customer...">
         </label>
     </form>
 </div>

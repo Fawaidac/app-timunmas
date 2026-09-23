@@ -16,6 +16,8 @@ class StoreOrderRequest extends FormRequest
         return [
             'customer_id'       => 'required|exists:CUSTOMER,KD_CUST',
             'order_date'        => 'required|date',
+            'payment_type'      => 'required|in:TUNAI,KREDIT',
+            'payment_method'    => 'required_if:payment_type,TUNAI|nullable|in:cash,transfer',
             'product_id'        => 'required|array|min:1',
             'product_id.*'      => 'required|exists:BARANG,KD_BRG',
             'unit'              => 'nullable|array',
@@ -37,6 +39,7 @@ class StoreOrderRequest extends FormRequest
             'customer_id.required'       => 'Customer wajib dipilih.',
             'customer_id.exists'         => 'Customer tidak valid.',
             'order_date.required'        => 'Tanggal order wajib diisi.',
+            'payment_method.required_if' => 'Metode pembayaran (Cash / Transfer) wajib dipilih untuk pembayaran Lunas.',
             'product_id.required'        => 'Minimal harus ada 1 item produk.',
             'product_id.array'           => 'Format produk tidak valid.',
             'product_id.*.exists'        => 'Produk tidak valid.',
